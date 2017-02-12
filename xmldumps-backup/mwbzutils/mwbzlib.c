@@ -299,7 +299,8 @@ int init_bz2_file(bz_info_t *bfile, int fin, int direction) {
   off_t seekresult;
 
   bfile->bufin_size = BUFINSIZE;
-  bfile->marker = init_marker();
+  if (bfile->marker == NULL)
+    bfile->marker = init_marker();
   bfile->bytes_read = 0;
   bfile->bytes_written = 0;
   bfile->eof = 0;
@@ -439,7 +440,6 @@ int get_and_decompress_data(bz_info_t *bfile, int fin, unsigned char *bufferout,
     bfile->strm.next_out = (char *)bfile->bufout;
     bfile->strm.avail_out = bfile->bufout_size;
   }
-
   ret = BZ_OK;
   while (BZ_OK == ret && bfile->bytes_written == 0) {
     ret = BZ2_bzDecompress_mine ( &(bfile->strm) );
@@ -512,12 +512,12 @@ int get_buffer_of_uncompressed_data(buf_info_t *b, int fin, bz_info_t *bfile, in
 }
 
 void dumpbuf_info_t(buf_info_t *b) {
-  fprintf(stdout, "\n");
-  fprintf(stdout, "b->buffer: %ld\n", (long int) b->buffer);
-  fprintf(stdout, "b->end: %ld\n", (long int) b->end);
-  fprintf(stdout, "b->next_to_read: %ld\n", (long int) b->next_to_read);
-  fprintf(stdout, "b->next_to_fill: %ld\n", (long int) b->next_to_fill);
-  fprintf(stdout, "b->bytes_avail: %ld\n", (long int) b->bytes_avail);
+  fprintf(stderr, "\n");
+  fprintf(stderr, "b->buffer: %ld\n", (long int) b->buffer);
+  fprintf(stderr, "b->end: %ld\n", (long int) b->end);
+  fprintf(stderr, "b->next_to_read: %ld\n", (long int) b->next_to_read);
+  fprintf(stderr, "b->next_to_fill: %ld\n", (long int) b->next_to_fill);
+  fprintf(stderr, "b->bytes_avail: %ld\n", (long int) b->bytes_avail);
 }
 
 /* 
@@ -640,7 +640,8 @@ off_t find_first_bz2_block_from_offset(bz_info_t *bfile, int fin, off_t position
   unsigned char buffout[5000];
 
   bfile->bufin_size = BUFINSIZE;
-  bfile->marker = init_marker();
+  if (bfile->marker == NULL)
+    bfile->marker = init_marker();
   bfile->position = position;
   bfile->block_start = (off_t)-1;
   bfile->bytes_read = 0;

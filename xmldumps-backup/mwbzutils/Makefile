@@ -16,7 +16,7 @@
 # 2010-2013: see the file COPYING for details.
 # ------------------------------------------------------------------
 
-VERSION        = "0.0.5"
+VERSION        = "0.0.6"
 CC            ?= gcc
 BIGFILES       = -D_FILE_OFFSET_BITS=64
 CPPFLAGS      += $(BIGFILES) -DVERSION=\"$(VERSION)\"
@@ -24,12 +24,15 @@ CFLAGS        ?= -Wall -O2
 
 build: checkforbz2footer dumpbz2filefromoffset \
 	dumplastbz2block findpageidinbz2xml \
-	recompressxml writeuptopageid compressedmanpages
+	recompressxml writeuptopageid compressedmanpages \
+	getlastpageidinbz2xml
+
 
 NAME_CHECKFORBZ2FOOTER       = "Check if bzip2 file ends with bz2 magic footer"
 NAME_DUMPBZ2FILEFROMOFFSET   = "Write MediaWiki XML pages from bzip2 file starting from offset"
 NAME_DUMPLASTBZ2BLOCK        = "Find last bz2 block in bzip2 file and dump contents"
 NAME_FINDPAGEIDINBZ2XML      = "Display offset of bz2 block for given page id in bzip2 MediaWiki XML file"
+NAME_FINDLASTPAGEIDINBZ2XML  = "Display last page id bzip2 MediaWiki XML file"
 NAME_RECOMPRESSXML           = "Bz2 compress MediaWiki XML input in batches of pages"
 NAME_WRITEUPTOPAGEID         = "Write range of page content from MediaWiki XML input"
 
@@ -59,6 +62,9 @@ dumplastbz2block: $(OBJSBZ) mwbzlib.o dumplastbz2block.o
 
 findpageidinbz2xml: $(OBJSBZ) mwbzlib.o httptiny.o findpageidinbz2xml.o
 	$(CC) $(LDFLAGS) -o findpageidinbz2xml findpageidinbz2xml.o httptiny.o $(OBJS) $(LIBS) -lz
+
+getlastpageidinbz2xml: $(OBJSBZ) mwbzlib.o getlastpageidinbz2xml.o
+	$(CC) $(LDFLAGS) -o getlastpageidinbz2xml getlastpageidinbz2xml.o $(OBJS) $(LIBS)
 
 recompressxml: $(OBJSBZ) recompressxml.o
 	$(CC) $(LDFLAGS) -o recompressxml recompressxml.o $(LIBS)
@@ -95,6 +101,9 @@ dumplastbz2block.1 : dumplastbz2block
 findpageidinbz2xml.1 : findpageidinbz2xml
 	$(HELP2MAN) --section 1 --no-info --name $(NAME_FINDPAGEIDINBZ2XML) \
 		--no-discard-stderr ./findpageidinbz2xml > docs/findpageidinbz2xml.1
+getlastpageidinbz2xml.1 : getlastpageidinbz2xml
+	$(HELP2MAN) --section 1 --no-info --name $(NAME_GETLASTPAGEIDINBZ2XML) \
+		--no-discard-stderr ./getlastpageidinbz2xml > docs/getlastpageidinbz2xml.1
 recompressxml.1 : recompressxml
 	$(HELP2MAN) --section 1 --no-info --name $(NAME_RECOMPRESSXML) \
 		--no-discard-stderr ./recompressxml > docs/recompressxml.1
@@ -103,12 +112,13 @@ writeuptopageid.1 : writeuptopageid
 		--no-discard-stderr ./writeuptopageid > docs/writeuptopageid.1
 
 install: dumplastbz2block findpageidinbz2xml checkforbz2footer dumpbz2filefromoffset \
-	recompressxml writeuptopageid compressedmanpages
+	recompressxml writeuptopageid compressedmanpages getlastpageidinbz2xml
 	install --directory                         $(BINDIR)
 	install --mode=755   checkforbz2footer      $(BINDIR)
 	install --mode=755   dumplastbz2block       $(BINDIR)
 	install --mode=755   dumpbz2filefromoffset  $(BINDIR)
 	install --mode=755   findpageidinbz2xml     $(BINDIR)
+	install --mode=755   getlastpageidinbz2xml  $(BINDIR)
 	install --mode=755   recompressxml          $(BINDIR)
 	install --mode=755   writeuptopageid        $(BINDIR)
 	install --directory                         $(MANDIR)
@@ -121,6 +131,7 @@ install: dumplastbz2block findpageidinbz2xml checkforbz2footer dumpbz2filefromof
 uninstall:
 	rm -f $(BINDIR)dumplastbz2block
 	rm -f $(BINDIR)findpageidinbz2xml
+	rm -f $(BINDIR)getlastpageidinbz2xml
 	rm -f $(BINDIR)checkforbz2footer
 	rm -f $(BINDIR)dumpbz2filefromoffset
 	rm -f $(BINDIR)recompressxml
@@ -132,6 +143,7 @@ uninstall:
 
 clean: 
 	rm -f *.o *.a dumplastbz2block findpageidinbz2xml \
+		getlastpageidinbz2xml \
 		checkforbz2footer dumpbz2filefromoffset \
 		recompressxml writeuptopageid docs/*.1.gz
 
