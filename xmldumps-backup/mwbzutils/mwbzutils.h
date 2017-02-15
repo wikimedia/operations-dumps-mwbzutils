@@ -10,6 +10,12 @@ typedef struct {
   off_t position; /* position in file of block */
 } page_info_t;
 
+typedef struct {
+  int rev_id; /* first id in the block */
+  int bits_shifted; /* block is right shifted this many bits */
+  off_t position; /* position in file of block */
+} rev_info_t;
+
 #define BUFINSIZE 5000
 
 /*

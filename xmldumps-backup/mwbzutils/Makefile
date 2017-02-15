@@ -16,7 +16,7 @@
 # 2010-2013: see the file COPYING for details.
 # ------------------------------------------------------------------
 
-VERSION        = "0.0.6"
+VERSION        = "0.0.5"
 CC            ?= gcc
 BIGFILES       = -D_FILE_OFFSET_BITS=64
 CPPFLAGS      += $(BIGFILES) -DVERSION=\"$(VERSION)\"
@@ -25,7 +25,7 @@ CFLAGS        ?= -Wall -O2
 build: checkforbz2footer dumpbz2filefromoffset \
 	dumplastbz2block findpageidinbz2xml \
 	recompressxml writeuptopageid compressedmanpages \
-	getlastpageidinbz2xml
+	getlastpageidinbz2xml getlastrevidinbz2xml
 
 
 NAME_CHECKFORBZ2FOOTER       = "Check if bzip2 file ends with bz2 magic footer"
@@ -66,6 +66,9 @@ findpageidinbz2xml: $(OBJSBZ) mwbzlib.o httptiny.o findpageidinbz2xml.o
 getlastpageidinbz2xml: $(OBJSBZ) mwbzlib.o getlastpageidinbz2xml.o
 	$(CC) $(LDFLAGS) -o getlastpageidinbz2xml getlastpageidinbz2xml.o $(OBJS) $(LIBS)
 
+getlastrevidinbz2xml: $(OBJSBZ) mwbzlib.o getlastrevidinbz2xml.o
+	$(CC) $(LDFLAGS) -o getlastrevidinbz2xml getlastrevidinbz2xml.o $(OBJS) $(LIBS)
+
 recompressxml: $(OBJSBZ) recompressxml.o
 	$(CC) $(LDFLAGS) -o recompressxml recompressxml.o $(LIBS)
 
@@ -86,7 +89,8 @@ docs/%.1.gz: docs/%.1
 # or the usage mssages change
 manpages: dumplastbz2block.1 findpageidinbz2xml.1 \
 	checkforbz2footer.1 dumpbz2filefromoffset.1 \
-	recompressxml.1 writeuptopageid.1
+	recompressxml.1 writeuptopageid.1 \
+	getlastpageidinbz2xml.1 getlastrevidinbz2xml.1
 	echo "Don't forget to commit your manpage changes to the repo"
 
 checkforbz2footer.1 : checkforbz2footer
@@ -104,6 +108,9 @@ findpageidinbz2xml.1 : findpageidinbz2xml
 getlastpageidinbz2xml.1 : getlastpageidinbz2xml
 	$(HELP2MAN) --section 1 --no-info --name $(NAME_GETLASTPAGEIDINBZ2XML) \
 		--no-discard-stderr ./getlastpageidinbz2xml > docs/getlastpageidinbz2xml.1
+getlastrevidinbz2xml.1 : getlastrevidinbz2xml
+	$(HELP2MAN) --section 1 --no-info --name $(NAME_GETLASTPAGEIDINBZ2XML) \
+		--no-discard-stderr ./getlastrevidinbz2xml > docs/getlastrevidinbz2xml.1
 recompressxml.1 : recompressxml
 	$(HELP2MAN) --section 1 --no-info --name $(NAME_RECOMPRESSXML) \
 		--no-discard-stderr ./recompressxml > docs/recompressxml.1
@@ -112,26 +119,29 @@ writeuptopageid.1 : writeuptopageid
 		--no-discard-stderr ./writeuptopageid > docs/writeuptopageid.1
 
 install: dumplastbz2block findpageidinbz2xml checkforbz2footer dumpbz2filefromoffset \
-	recompressxml writeuptopageid compressedmanpages getlastpageidinbz2xml
-	install --directory                         $(BINDIR)
-	install --mode=755   checkforbz2footer      $(BINDIR)
-	install --mode=755   dumplastbz2block       $(BINDIR)
-	install --mode=755   dumpbz2filefromoffset  $(BINDIR)
-	install --mode=755   findpageidinbz2xml     $(BINDIR)
-	install --mode=755   getlastpageidinbz2xml  $(BINDIR)
-	install --mode=755   recompressxml          $(BINDIR)
-	install --mode=755   writeuptopageid        $(BINDIR)
-	install --directory                         $(MANDIR)
-	install --mode=644   docs/*.1.gz            $(MANDIR)
-	install --directory                         $(DOCDIR)
-	install --mode=644   README                 $(DOCDIR)
-	install --mode=644   LICENSE_BZ             $(DOCDIR)
-	install --mode=644   COPYING                $(DOCDIR)
+	recompressxml writeuptopageid compressedmanpages getlastpageidinbz2xml \
+	getlastrevidinbz2xml
+	install --directory                             $(BINDIR)
+	install --mode=755   checkforbz2footer          $(BINDIR)
+	install --mode=755   dumplastbz2block           $(BINDIR)
+	install --mode=755   dumpbz2filefromoffset      $(BINDIR)
+	install --mode=755   findpageidinbz2xml         $(BINDIR)
+	install --mode=755   getlastpageidinbz2xml      $(BINDIR)
+	install --mode=755   getlastrevidinbz2xml $(BINDIR)
+	install --mode=755   recompressxml              $(BINDIR)
+	install --mode=755   writeuptopageid            $(BINDIR)
+	install --directory                             $(MANDIR)
+	install --mode=644   docs/*.1.gz                $(MANDIR)
+	install --directory                             $(DOCDIR)
+	install --mode=644   README                     $(DOCDIR)
+	install --mode=644   LICENSE_BZ                 $(DOCDIR)
+	install --mode=644   COPYING                    $(DOCDIR)
 
 uninstall:
 	rm -f $(BINDIR)dumplastbz2block
 	rm -f $(BINDIR)findpageidinbz2xml
 	rm -f $(BINDIR)getlastpageidinbz2xml
+	rm -f $(BINDIR)getlastrevidinbz2xml
 	rm -f $(BINDIR)checkforbz2footer
 	rm -f $(BINDIR)dumpbz2filefromoffset
 	rm -f $(BINDIR)recompressxml
@@ -143,7 +153,7 @@ uninstall:
 
 clean: 
 	rm -f *.o *.a dumplastbz2block findpageidinbz2xml \
-		getlastpageidinbz2xml \
+		getlastpageidinbz2xml getlastrevidinbz2xml \
 		checkforbz2footer dumpbz2filefromoffset \
 		recompressxml writeuptopageid docs/*.1.gz
 
