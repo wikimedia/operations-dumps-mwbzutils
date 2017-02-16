@@ -291,7 +291,7 @@ int main(int argc, char **argv) {
   }
   if (!page_id) giveup(fin);
 
-  fprintf(stderr, "page_id:%d\n", page_id);
+  fprintf(stdout, "page_id:%d\n", page_id);
   close(fin);
   exit(0);
 }  

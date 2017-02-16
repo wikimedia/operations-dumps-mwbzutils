@@ -284,7 +284,7 @@ int main(int argc, char **argv) {
   }
   if (!rev_id) giveup(fin);
 
-  fprintf(stderr, "rev_id:%d\n", rev_id);
+  fprintf(stdout, "rev_id:%d\n", rev_id);
   close(fin);
   exit(0);
 }  
