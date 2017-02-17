@@ -123,6 +123,7 @@ char *get_hostname_from_xml_header(int fin) {
   static char hostname[256];
 
   bfile.initialized = 0;
+  bfile.marker = NULL;
 
   res = regcomp(&compiled_base_expr, base_expr, REG_EXTENDED);
   match_base_expr = (regmatch_t *)malloc(sizeof(regmatch_t)*2);
@@ -325,6 +326,7 @@ int get_first_page_id_after_offset(int fin, off_t position, page_info_t *pinfo, 
   int buffer_count = 0;
 
   bfile.initialized = 0;
+  bfile.marker = NULL;
 
   res = regcomp(&compiled_page, page, REG_EXTENDED);
   res = regcomp(&compiled_page_id, page_id, REG_EXTENDED);

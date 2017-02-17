@@ -237,6 +237,7 @@ int main(int argc, char **argv) {
 
   bfile.file_size = get_file_size(fin);
   bfile.footer = init_footer();
+  bfile.marker = NULL;
   bfile.marker = init_marker();
   result = check_file_for_footer(fin, &bfile);
   if (result == -1) {

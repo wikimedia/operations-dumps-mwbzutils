@@ -96,6 +96,7 @@ int main(int argc, char **argv) {
     exit(-1);
   }
 
+  bfile.marker = NULL;
   bfile.footer = init_footer();
   result = check_file_for_footer(fin, &bfile);
   close(fin);

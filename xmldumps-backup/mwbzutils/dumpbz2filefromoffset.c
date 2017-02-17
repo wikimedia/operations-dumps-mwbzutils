@@ -80,6 +80,7 @@ int dump_mw_header(int fin) {
   int firstpage = 1;
   int done = 0;
   bfile.initialized = 0;
+  bfile.marker = NULL;
 
   res = regcomp(&compiled_siteinfo, siteinfo, REG_EXTENDED);
 
@@ -186,6 +187,7 @@ int dump_from_first_page_id_after_offset(int fin, off_t position) {
   int firstpage = 1;
 
   bfile.initialized = 0;
+  bfile.marker = NULL;
 
   res = regcomp(&compiled_page, page, REG_EXTENDED);
 

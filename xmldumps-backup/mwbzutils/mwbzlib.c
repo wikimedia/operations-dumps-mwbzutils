@@ -141,7 +141,6 @@ int find_next_bz2_block_marker(int fin, bz_info_t *bfile, int direction) {
   }
   /* must be after 4 byte file header, and we add a leftmost byte to the buffer 
      of data read in case some bits have been shifted into it */
-  /*  fprintf(stderr,"position is %"PRId64" and file size is %"PRId64"\n",bfile->position, bfile->file_size); */
   while (bfile->position <= bfile->file_size - 6 && bfile->position >= 0 && bfile->bits_shifted < 0) { 
     bfile->bits_shifted = check_buffer_for_bz2_block_marker(bfile);
     if (bfile->bits_shifted < 0) {
@@ -158,7 +157,6 @@ int find_next_bz2_block_marker(int fin, bz_info_t *bfile, int direction) {
       }
       res = read(fin, bfile->marker_buffer, 7);
       if (res < 7) {
-	/* fprintf(stderr,"read of file failed\n"); */
 	return(-1);
       }
     }
@@ -320,7 +318,6 @@ int init_bz2_file(bz_info_t *bfile, int fin, int direction) {
 
   find_next_bz2_block_marker(fin, bfile, direction);
   if (bfile->bits_shifted >= 0) {
-    /*    fprintf(stderr,"marker bits shifted by is %d\n",bfile->bits_shifted); */
     init_decompress(bfile);
     decompress_header(fin, bfile);
     setup_first_buffer_to_decompress(fin, bfile);
@@ -443,8 +440,6 @@ int get_and_decompress_data(bz_info_t *bfile, int fin, unsigned char *bufferout,
   ret = BZ_OK;
   while (BZ_OK == ret && bfile->bytes_written == 0) {
     ret = BZ2_bzDecompress_mine ( &(bfile->strm) );
-    /* FIXME testing only, does stuff actually get written or not? */
-    /*    if (BZ_OK == ret || BZ_STREAM_END == ret || BZ_DATA_ERROR == ret) { */
     if (BZ_OK == ret || BZ_STREAM_END == ret) {
       bfile->bytes_written = (unsigned char *)(bfile->strm.next_out) - bfile->bufout;
     }
@@ -453,18 +448,9 @@ int get_and_decompress_data(bz_info_t *bfile, int fin, unsigned char *bufferout,
       return(-1);
     }
     fill_buffer_to_decompress(fin, bfile, ret);
-    /*
-    if (bfile->eof && (BZ_OK == ret || BZ_STREAM_END == ret) ) {
-      fprintf(stderr,"eof reached\n");
-    }
-    */
   }
   if (ret == BZ_STREAM_END) {
     bfile->eof++;
-    /* should we actually change the file position? 
-    bfile->position = bfile->filesize;
-    lseek(fin,(off_t)0,SEEK_END);
-    */
   }
   return(0);
 }
@@ -587,8 +573,9 @@ int read_footer(unsigned char *buffer, int fin) {
   return(0);
 }
 
-/* 
-   return -1 if no match                                                                                                                         return number of bits rightshifted otherwise 
+/*
+  return number of bits rightshifted otherwise
+  -1 if no match
 */
 int check_file_for_footer(int fin, bz_info_t *bfile) {
   unsigned char buffer[11];
