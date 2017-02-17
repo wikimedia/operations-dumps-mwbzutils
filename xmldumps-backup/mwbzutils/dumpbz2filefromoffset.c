@@ -68,7 +68,6 @@ void show_version(char *version_string) {
       -1 on error
 */
 int dump_mw_header(int fin) {
-  int res;
   regmatch_t *match_siteinfo;
   regex_t compiled_siteinfo;
   int length=5000; /* output buffer size */
@@ -82,7 +81,7 @@ int dump_mw_header(int fin) {
   bfile.initialized = 0;
   bfile.marker = NULL;
 
-  res = regcomp(&compiled_siteinfo, siteinfo, REG_EXTENDED);
+  regcomp(&compiled_siteinfo, siteinfo, REG_EXTENDED);
 
   match_siteinfo = (regmatch_t *)malloc(sizeof(regmatch_t)*1);
 
@@ -175,7 +174,6 @@ int dump_mw_header(int fin) {
       -1 on error
 */
 int dump_from_first_page_id_after_offset(int fin, off_t position) {
-  int res;
   regmatch_t *match_page;
   regex_t compiled_page;
   int length=5000; /* output buffer size */
@@ -189,7 +187,7 @@ int dump_from_first_page_id_after_offset(int fin, off_t position) {
   bfile.initialized = 0;
   bfile.marker = NULL;
 
-  res = regcomp(&compiled_page, page, REG_EXTENDED);
+  regcomp(&compiled_page, page, REG_EXTENDED);
 
   match_page = (regmatch_t *)malloc(sizeof(regmatch_t)*1);
 

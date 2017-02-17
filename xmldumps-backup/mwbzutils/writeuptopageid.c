@@ -4,6 +4,7 @@
 #include <errno.h>
 #include <string.h>
 #include <getopt.h>
+#include <ctype.h>
 
 typedef enum { None, StartHeader, EndHeader, StartPage, AtPageID, WriteMem, Write, EndPage, AtLastPageID } States;
 
@@ -127,13 +128,13 @@ int writeMemoryIfNeeded(char *mem, States state) {
     res = fwrite(mem,strlen(mem),1,stdout);
     return(res);
   }
+  return(1);
 }
 
 void clearMemoryIfNeeded(char *mem, States state) {
   if (state == WriteMem || state == None) {
     mem[0]='\0';
   }
-  return;
 }
 
 /* returns 1 on success, 0 on error */
@@ -141,6 +142,7 @@ int writeIfNeeded(char *line, States state) {
   if (state == StartHeader || state == EndHeader || state == WriteMem || state == Write || state == EndPage) {
     return(fwrite(line,strlen(line),1,stdout));
   }
+  return(1);
 }
 
 /*  returns 1 on success, 0 on error */

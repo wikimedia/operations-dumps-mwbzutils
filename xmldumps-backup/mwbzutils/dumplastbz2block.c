@@ -65,7 +65,6 @@ int main(int argc, char **argv) {
   int result;
   buf_info_t *b;
 
-  int firstblock = 1;
   int length = 5000; /* output buffer size */
 
   int optc;
@@ -118,9 +117,6 @@ int main(int argc, char **argv) {
   b = init_buffer(length);
   bfile.bytes_read = 0;
 
-  /*  init_bz2_file(&bfile, fin, BACKWARD); */
-  firstblock = 1;
-
   if (find_first_bz2_block_from_offset(&bfile, fin, bfile.position, BACKWARD) <= (off_t)0) {
     fprintf(stderr,"failed to find block in bz2file\n");
     exit(-1);
@@ -133,7 +129,6 @@ int main(int argc, char **argv) {
       b->next_to_fill = b->buffer; /* empty */
       bfile.strm.next_out = (char *)b->next_to_fill;
       bfile.strm.avail_out = b->end - b->next_to_fill;
-      firstblock = 0;
     }
     else {
       /* should never happen */

@@ -147,7 +147,6 @@ int dowrite(int sd,char *message,int length)
 
 int doconnect(int *sd,struct timeval *timeout,struct sockaddr_in *sa_us)
 {
-  int val;
   fd_set fds;
   
   if ((*sd = socket(AF_INET,SOCK_STREAM,0)) == -1) {
@@ -155,15 +154,6 @@ int doconnect(int *sd,struct timeval *timeout,struct sockaddr_in *sa_us)
     perror(whoami);
     exit(1);
   }
-  /*
-  val=1;
-  if (ioctl(*sd, FIONBIO, &val) == -1) {
-    fprintf(stderr,"%s: could not make connection \
-         non-blocking\n",whoami);
-    perror(whoami);
-    exit(1);
-  }
-  */
   if (connect(*sd,(struct sockaddr *) sa_us,sizeof(*sa_us)) == -1) {
     if (errno != EINPROGRESS) {
       fprintf(stderr,"%s: could not connect\n", whoami);

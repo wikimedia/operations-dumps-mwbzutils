@@ -106,7 +106,6 @@ int init_and_read_first_buffer_bz2_file(bz_info_t *bfile, int fin) {
 extern char * geturl(char *hostname, int port, char *url);
 
 char *get_hostname_from_xml_header(int fin) {
-  int res;
   regmatch_t *match_base_expr;
   regex_t compiled_base_expr;
   /*	 <base>http://el.wiktionary.org/wiki/...</base> */
@@ -119,13 +118,13 @@ char *get_hostname_from_xml_header(int fin) {
 
   int hostname_length = 0;
 
-  off_t old_position, seek_result;
+  off_t old_position;
   static char hostname[256];
 
   bfile.initialized = 0;
   bfile.marker = NULL;
 
-  res = regcomp(&compiled_base_expr, base_expr, REG_EXTENDED);
+  regcomp(&compiled_base_expr, base_expr, REG_EXTENDED);
   match_base_expr = (regmatch_t *)malloc(sizeof(regmatch_t)*2);
 
   b = init_buffer(length);
@@ -133,7 +132,7 @@ char *get_hostname_from_xml_header(int fin) {
 
   bfile.position = (off_t)0;
   old_position = lseek(fin,(off_t)0,SEEK_CUR);
-  seek_result = lseek(fin,(off_t)0,SEEK_SET);
+  lseek(fin,(off_t)0,SEEK_SET);
 
   while ((get_buffer_of_uncompressed_data(b, fin, &bfile, FORWARD)>=0) && (! bfile.eof)) {
     /* so someday the header might grow enough that <base> isn't in the first 1000 characters but we'll ignore that for now */
@@ -160,8 +159,8 @@ char *get_hostname_from_xml_header(int fin) {
 	    b->next_to_fill = b->buffer; /* empty */
 	    bfile.strm.next_out = (char *)b->next_to_fill;
 	    bfile.strm.avail_out = b->end - b->next_to_fill;
-	    res = BZ2_bzDecompressEnd ( &(bfile.strm) );
-	    seek_result = lseek(fin,old_position,SEEK_SET);
+	    BZ2_bzDecompressEnd ( &(bfile.strm) );
+	    lseek(fin,old_position,SEEK_SET);
 	    free_buffer(b);
 	    return(hostname);
 	  }
@@ -172,8 +171,8 @@ char *get_hostname_from_xml_header(int fin) {
       }
     }
   }
-  res = BZ2_bzDecompressEnd ( &(bfile.strm) );
-  seek_result = lseek(fin,old_position,SEEK_SET);
+  BZ2_bzDecompressEnd ( &(bfile.strm) );
+  lseek(fin,old_position,SEEK_SET);
   free_buffer(b);
   return(NULL);
 }
@@ -259,7 +258,6 @@ int get_page_id_from_rev_id_via_api(long int rev_id, int fin) {
   regmatch_t *match_page_id_expr;
   regex_t compiled_page_id_expr;
   char *page_id_expr = "<pages><page pageid=\"([0-9]+)\""; 
-  int res;
 
   hostname = get_hostname_from_xml_header(fin);
   if (!hostname) {
@@ -285,7 +283,7 @@ int get_page_id_from_rev_id_via_api(long int rev_id, int fin) {
        <?xml version="1.0"?><api><query><pages><page pageid="6215" ns="0" title="hystérique" /></pages></query></api>
     */
     match_page_id_expr = (regmatch_t *)malloc(sizeof(regmatch_t)*3);
-    res = regcomp(&compiled_page_id_expr, page_id_expr, REG_EXTENDED);
+    regcomp(&compiled_page_id_expr, page_id_expr, REG_EXTENDED);
 
     if (regexec(&compiled_page_id_expr, buffer,  3,  match_page_id_expr, 0 ) == 0) {
       if (match_page_id_expr[2].rm_so >=0) {
@@ -309,7 +307,6 @@ int get_page_id_from_rev_id_via_api(long int rev_id, int fin) {
       -1 on error
 */
 int get_first_page_id_after_offset(int fin, off_t position, id_info_t *pinfo, int use_api, int use_stub, char *stubfilename, int verbose) {
-  int res;
   regmatch_t *match_page, *match_page_id, *match_rev, *match_rev_id;
   regex_t compiled_page, compiled_page_id, compiled_rev, compiled_rev_id;
   int length=5000; /* output buffer size */
@@ -328,10 +325,10 @@ int get_first_page_id_after_offset(int fin, off_t position, id_info_t *pinfo, in
   bfile.initialized = 0;
   bfile.marker = NULL;
 
-  res = regcomp(&compiled_page, page, REG_EXTENDED);
-  res = regcomp(&compiled_page_id, page_id, REG_EXTENDED);
-  res = regcomp(&compiled_rev, rev, REG_EXTENDED);
-  res = regcomp(&compiled_rev_id, rev_id_expr, REG_EXTENDED);
+  regcomp(&compiled_page, page, REG_EXTENDED);
+  regcomp(&compiled_page_id, page_id, REG_EXTENDED);
+  regcomp(&compiled_rev, rev, REG_EXTENDED);
+  regcomp(&compiled_rev_id, rev_id_expr, REG_EXTENDED);
 
   match_page = (regmatch_t *)malloc(sizeof(regmatch_t)*1);
   match_page_id = (regmatch_t *)malloc(sizeof(regmatch_t)*3);
@@ -545,7 +542,7 @@ int do_iteration(iter_info_t *iinfo, int fin, id_info_t *pinfo, int use_api, int
 
 int main(int argc, char **argv) {
   int fin, res, page_id=0;
-  off_t position, interval, file_size;
+  off_t file_size;
   id_info_t pinfo;
   iter_info_t iinfo;
   char *filename = NULL;
@@ -608,8 +605,6 @@ int main(int argc, char **argv) {
 
   file_size = get_file_size(fin);
 
-  interval = file_size;
-  position = (off_t)0;
   pinfo.bits_shifted = -1;
   pinfo.position = (off_t)-1;
   pinfo.id = -1;
