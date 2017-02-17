@@ -13,11 +13,21 @@ version 1.0.6 of 6 September 2010 (Copyright (C) 1996-2010 Julian Seward
 LICENSE_BZ; all other files in the package are released under the GPL, 
 see the file COPYING for details.
 
+Scripts:
+
+check_bz2_pagerange.py - Checks that the first and last page of a bz2 content
+                         checkpoint filename match the contents in the file,
+			 i.e. the first page id in the name is the first page
+			 id contained in the file, and the same for the last
+			 page id. This uses the MediaWiki api as well as
+			 the getlastidinbz2xml utility for which see below.
+
 Utilities:
 
 checkforbz2footer     - Tests to see if the bz2 file specified on the command line
 		        has a bz2 footer (if it does it is likely to be intact).
 			Exits with 0 if found, 1 otherwise.
+
 dumpbz2filefromoffset - Uncompresses the file from the first bz2 block found after
 		        the specified offset, and dumps the results to stdout.
                         This will first look for and dump the <mediawiki> header, 
@@ -25,6 +35,7 @@ dumpbz2filefromoffset - Uncompresses the file from the first bz2 block found aft
 			find the first <page> tag in the first bz2 block after
 			the specified output and dump the contents from that point
 			on.
+
 dumplastbz2block      - Finds the last bz2 block marker in a file and dumps whatever 
 		        can be decompressed after that point;  the header of the file 
 			must be intact in order for any output to be produced. This 
@@ -41,6 +52,10 @@ findpageidinbz2xml    - Given a bzipped and possibly truncated file, and a page 
 			to stdout. Format of output:
 			     position:xxxxx pageid:nnn
 			It exits with 0 on success, -1 on error.
+
+getlastidinbz2xml     - Given a bzipped xml content file and a page or rev id and the
+                        type (either 'page' or 'rev'), return the last such id in the
+			xml file.
 
 recompresszml         - Reads an xml stream of pages and writes multiple bz2 compressed
 		        streams, concatenated, to stdout, with the specified number of 
