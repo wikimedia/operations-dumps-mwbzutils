@@ -110,11 +110,24 @@ int bytes_compare(unsigned char *buff1, unsigned char *buff2, int numbytes, int 
   }
 }
 
+void dump_bfile_info(bz_info_t *bfile) {
+  fprintf(stderr, "bfile->bufin_size: %d\n", bfile->bufin_size);
+  fprintf(stderr, "bfile->buffout_size: %d\n", bfile->bufout_size);
+  fprintf(stderr, "bfile->initialized: %d\n", bfile->initialized);
+  fprintf(stderr, "bfile->block_start: %"PRId64"\n", bfile->block_start);
+  fprintf(stderr, "bfile->something: %d\n", bfile->bits_shifted);
+  fprintf(stderr, "bfile->position: %"PRId64"\n", bfile->position);
+  fprintf(stderr, "bfile->bytes_written: %d\n", bfile->bytes_written);
+  fprintf(stderr, "bfile->eof: %d\n", bfile->eof);
+  fprintf(stderr, "bfile->file_size: %"PRId64"\n", bfile->file_size);
+}
+
 /* return -1 if no match
    return number of bits rightshifted otherwise */
 int check_buffer_for_bz2_block_marker(bz_info_t *bfile) {
   int result, i;
 
+  /* dump_bfile_info(bfile); */
   result = bytes_compare(bfile->marker[0],bfile->marker_buffer+1,6,0);
   if (!result) {
     return(0);
