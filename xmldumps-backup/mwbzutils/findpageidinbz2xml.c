@@ -308,7 +308,7 @@ int get_page_id_from_rev_id_via_api(long int rev_id, int fin) {
       0 if no pageid found,
       -1 on error
 */
-int get_first_page_id_after_offset(int fin, off_t position, page_info_t *pinfo, int use_api, int use_stub, char *stubfilename, int verbose) {
+int get_first_page_id_after_offset(int fin, off_t position, id_info_t *pinfo, int use_api, int use_stub, char *stubfilename, int verbose) {
   int res;
   regmatch_t *match_page, *match_page_id, *match_rev, *match_rev_id;
   regex_t compiled_page, compiled_page_id, compiled_rev, compiled_rev_id;
@@ -342,7 +342,7 @@ int get_first_page_id_after_offset(int fin, off_t position, page_info_t *pinfo, 
 
   pinfo->bits_shifted = -1;
   pinfo->position = (off_t)-1;
-  pinfo->page_id = -1;
+  pinfo->id = -1;
 
   bfile.bytes_read = 0;
 
@@ -363,7 +363,7 @@ int get_first_page_id_after_offset(int fin, off_t position, page_info_t *pinfo, 
 	    fwrite(b->next_to_read+match_page_id[2].rm_so, sizeof(unsigned char), match_page_id[2].rm_eo - match_page_id[2].rm_so, stderr);
 	    fwrite("\n",1,1,stderr);
 	  }
-	  pinfo->page_id = atoi((char *)(b->next_to_read+match_page_id[2].rm_so));
+	  pinfo->id = atoi((char *)(b->next_to_read+match_page_id[2].rm_so));
 	  pinfo->position = bfile.block_start;
 	  pinfo->bits_shifted = bfile.bits_shifted;
 	  return(1);
@@ -405,7 +405,7 @@ int get_first_page_id_after_offset(int fin, off_t position, page_info_t *pinfo, 
 	  else { /* use_stub */
 	    page_id_found = get_page_id_from_rev_id_via_stub(rev_id, stubfilename);
 	  }
-	  pinfo->page_id = page_id_found +1; /* want the page after this offset, not the one we're in */
+	  pinfo->id = page_id_found +1; /* want the page after this offset, not the one we're in */
 	  pinfo->position = bfile.block_start;
 	  pinfo->bits_shifted = bfile.bits_shifted;
 	  return(1);
@@ -482,7 +482,7 @@ int get_first_page_id_after_offset(int fin, off_t position, page_info_t *pinfo, 
 
    return value from guess, or -1 on error. 
  */
-int do_iteration(iter_info_t *iinfo, int fin, page_info_t *pinfo, int use_api, int use_stub, char *stubfilename, int verbose) {
+int do_iteration(iter_info_t *iinfo, int fin, id_info_t *pinfo, int use_api, int use_stub, char *stubfilename, int verbose) {
   int res;
   off_t new_position;
   off_t interval;
@@ -523,9 +523,9 @@ int do_iteration(iter_info_t *iinfo, int fin, page_info_t *pinfo, int use_api, i
   res = get_first_page_id_after_offset(fin, new_position, pinfo, use_api, use_stub, stubfilename, verbose);
   if (res >0) {
     /* caller wants the new value */
-    iinfo->last_value = pinfo->page_id;
+    iinfo->last_value = pinfo->id;
     iinfo->last_position = new_position;
-    return(pinfo->page_id);
+    return(pinfo->id);
   }
   else {
     /* here is the tough case, if we didn't find anything then we are prolly too close to the end, truncation or
@@ -546,7 +546,7 @@ int do_iteration(iter_info_t *iinfo, int fin, page_info_t *pinfo, int use_api, i
 int main(int argc, char **argv) {
   int fin, res, page_id=0;
   off_t position, interval, file_size;
-  page_info_t pinfo;
+  id_info_t pinfo;
   iter_info_t iinfo;
   char *filename = NULL;
   int optindex=0;
@@ -612,7 +612,7 @@ int main(int argc, char **argv) {
   position = (off_t)0;
   pinfo.bits_shifted = -1;
   pinfo.position = (off_t)-1;
-  pinfo.page_id = -1;
+  pinfo.id = -1;
 
   iinfo.left_end = (off_t)0;
   iinfo.right_end = file_size;
@@ -620,19 +620,19 @@ int main(int argc, char **argv) {
 
   res = get_first_page_id_after_offset(fin, (off_t)0, &pinfo, use_api, use_stub, stubfile, verbose);
   if (res > 0) {
-    iinfo.last_value = pinfo.page_id;
+    iinfo.last_value = pinfo.id;
     iinfo.last_position = (off_t)0;
   }
   else {
     fprintf(stderr,"Failed to find any page from start of file, exiting\n");
     exit(1);
   }
-  if (pinfo.page_id == page_id) {
+  if (pinfo.id == page_id) {
     if (verbose) fprintf(stderr,"found the page id right away, no iterations needed.\n");
-    fprintf(stdout,"position:%"PRId64" page_id:%d\n",pinfo.position, pinfo.page_id);
+    fprintf(stdout,"position:%"PRId64" page_id:%d\n",pinfo.position, pinfo.id);
     exit(0);
   }
-  if (pinfo.page_id > page_id) {
+  if (pinfo.id > page_id) {
     fprintf(stderr,"Page requested is less than first page id in file\n");
     exit(-1);
   }
@@ -643,8 +643,8 @@ int main(int argc, char **argv) {
       exit(-1);
     }
     else if (iinfo.left_end == iinfo.right_end) {
-      if ( pinfo.page_id <= page_id) {
-	fprintf(stdout,"position:%"PRId64" page_id:%d\n",pinfo.position, pinfo.page_id);
+      if ( pinfo.id <= page_id) {
+	fprintf(stdout,"position:%"PRId64" page_id:%d\n",pinfo.position, pinfo.id);
 	exit(0);
       }
       else {
