@@ -118,7 +118,7 @@ def get_bz2_content_files(wikiname, date):
 
 def get_last_revid_from_file(filename):
     # FIXME get this from config file too
-    command = ["/usr/local/bin/getlastrevidinbz2xml", "-f", filename]
+    command = ["/usr/local/bin/getlastidinbz2xml", "-f", filename, "-t", "rev"]
     proc = Popen(command, stdout=PIPE, stderr=PIPE)
     output, error = proc.communicate()
     if proc.returncode:
