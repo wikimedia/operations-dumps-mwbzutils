@@ -25,7 +25,7 @@ CFLAGS        ?= -Wall -O2
 build: checkforbz2footer dumpbz2filefromoffset \
 	dumplastbz2block findpageidinbz2xml \
 	recompressxml writeuptopageid compressedmanpages \
-	getlastpageidinbz2xml getlastidinbz2xml
+	getlastidinbz2xml
 
 
 NAME_CHECKFORBZ2FOOTER       = "Check if bzip2 file ends with bz2 magic footer"
@@ -63,9 +63,6 @@ dumplastbz2block: $(OBJSBZ) mwbzlib.o dumplastbz2block.o
 findpageidinbz2xml: $(OBJSBZ) mwbzlib.o httptiny.o findpageidinbz2xml.o
 	$(CC) $(LDFLAGS) -o findpageidinbz2xml findpageidinbz2xml.o httptiny.o $(OBJS) $(LIBS) -lz
 
-getlastpageidinbz2xml: $(OBJSBZ) mwbzlib.o getlastpageidinbz2xml.o
-	$(CC) $(LDFLAGS) -o getlastpageidinbz2xml getlastpageidinbz2xml.o $(OBJS) $(LIBS)
-
 getlastidinbz2xml: $(OBJSBZ) mwbzlib.o getlastidinbz2xml.o
 	$(CC) $(LDFLAGS) -o getlastidinbz2xml getlastidinbz2xml.o $(OBJS) $(LIBS)
 
@@ -90,7 +87,7 @@ docs/%.1.gz: docs/%.1
 manpages: dumplastbz2block.1 findpageidinbz2xml.1 \
 	checkforbz2footer.1 dumpbz2filefromoffset.1 \
 	recompressxml.1 writeuptopageid.1 \
-	getlastpageidinbz2xml.1 getlastidinbz2xml.1
+	getlastidinbz2xml.1
 	echo "Don't forget to commit your manpage changes to the repo"
 
 checkforbz2footer.1 : checkforbz2footer
@@ -105,11 +102,8 @@ dumplastbz2block.1 : dumplastbz2block
 findpageidinbz2xml.1 : findpageidinbz2xml
 	$(HELP2MAN) --section 1 --no-info --name $(NAME_FINDPAGEIDINBZ2XML) \
 		--no-discard-stderr ./findpageidinbz2xml > docs/findpageidinbz2xml.1
-getlastpageidinbz2xml.1 : getlastpageidinbz2xml
-	$(HELP2MAN) --section 1 --no-info --name $(NAME_GETLASTPAGEIDINBZ2XML) \
-		--no-discard-stderr ./getlastpageidinbz2xml > docs/getlastpageidinbz2xml.1
 getlastidinbz2xml.1 : getlastidinbz2xml
-	$(HELP2MAN) --section 1 --no-info --name $(NAME_GETLASTPAGEIDINBZ2XML) \
+	$(HELP2MAN) --section 1 --no-info --name $(NAME_GETLASTIDINBZ2XML) \
 		--no-discard-stderr ./getlastidinbz2xml > docs/getlastidinbz2xml.1
 recompressxml.1 : recompressxml
 	$(HELP2MAN) --section 1 --no-info --name $(NAME_RECOMPRESSXML) \
@@ -119,15 +113,13 @@ writeuptopageid.1 : writeuptopageid
 		--no-discard-stderr ./writeuptopageid > docs/writeuptopageid.1
 
 install: dumplastbz2block findpageidinbz2xml checkforbz2footer dumpbz2filefromoffset \
-	recompressxml writeuptopageid compressedmanpages getlastpageidinbz2xml \
-	getlastidinbz2xml
+	recompressxml writeuptopageid compressedmanpages getlastidinbz2xml
 	install --directory                             $(BINDIR)
 	install --mode=755   checkforbz2footer          $(BINDIR)
 	install --mode=755   dumplastbz2block           $(BINDIR)
 	install --mode=755   dumpbz2filefromoffset      $(BINDIR)
 	install --mode=755   findpageidinbz2xml         $(BINDIR)
-	install --mode=755   getlastpageidinbz2xml      $(BINDIR)
-	install --mode=755   getlastidinbz2xml $(BINDIR)
+	install --mode=755   getlastidinbz2xml          $(BINDIR)
 	install --mode=755   recompressxml              $(BINDIR)
 	install --mode=755   writeuptopageid            $(BINDIR)
 	install --directory                             $(MANDIR)
@@ -140,7 +132,6 @@ install: dumplastbz2block findpageidinbz2xml checkforbz2footer dumpbz2filefromof
 uninstall:
 	rm -f $(BINDIR)dumplastbz2block
 	rm -f $(BINDIR)findpageidinbz2xml
-	rm -f $(BINDIR)getlastpageidinbz2xml
 	rm -f $(BINDIR)getlastidinbz2xml
 	rm -f $(BINDIR)checkforbz2footer
 	rm -f $(BINDIR)dumpbz2filefromoffset
@@ -153,7 +144,7 @@ uninstall:
 
 clean: 
 	rm -f *.o *.a dumplastbz2block findpageidinbz2xml \
-		getlastpageidinbz2xml getlastidinbz2xml \
+		getlastidinbz2xml \
 		checkforbz2footer dumpbz2filefromoffset \
 		recompressxml writeuptopageid docs/*.1.gz
 

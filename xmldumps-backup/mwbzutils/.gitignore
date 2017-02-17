@@ -6,5 +6,4 @@ dumplastbz2block
 findpageidinbz2xml
 recompressxml
 writeuptopageid
-getlastpageidinbz2xml
-getlastrevidinbz2xml
+getlastidinbz2xml
