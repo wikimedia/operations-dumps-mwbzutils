@@ -155,7 +155,7 @@ int endsXmlBlock(char *buf, int header) {
     else return 0;
   }
 
-  /* normal check for end of page, end of content */  
+  /* normal check for end of page, end of content */
   if (!strcmp(buf,pageCloseTag) || !strcmp(buf,mediawikiCloseTag)) return 1;
   else return 0;
 }

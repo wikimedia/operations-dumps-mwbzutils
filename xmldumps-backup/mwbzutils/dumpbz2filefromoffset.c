@@ -59,10 +59,10 @@ void show_version(char *version_string) {
   exit(-1);
 }
 
-/* 
+/*
    dump the <mediawiki> header (up through
-   </siteinfo> close tag) found at the 
-   beginning of xml dump files. 
+   </siteinfo> close tag) found at the
+   beginning of xml dump files.
    returns:
       0 on success,
       -1 on error
@@ -113,7 +113,7 @@ int dump_mw_header(int fin) {
 	      bfile.strm.next_out = (char *)b->next_to_fill;
 	      bfile.strm.avail_out = b->end - b->next_to_fill;
 	    }
-	  }  
+	  }
 	}
 	else {
 	  fprintf(stderr,"missing mediawiki header from bz2 xml file\n");
@@ -166,8 +166,8 @@ int dump_mw_header(int fin) {
   }
 }
 
-/* 
-   find the first page id after position in file 
+/*
+   find the first page id after position in file
    decompress and dump to stdout from that point on
    returns:
       0 on success,
@@ -251,7 +251,7 @@ int dump_from_first_page_id_after_offset(int fin, off_t position) {
     b->next_to_fill = b->buffer; /* empty */
     bfile.strm.next_out = (char *)b->next_to_fill;
     bfile.strm.avail_out = b->end - b->next_to_fill;
-  }  
+  }
   return(0);
 }
 

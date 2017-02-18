@@ -143,7 +143,7 @@ int main(int argc, char **argv) {
     b->next_to_fill = b->buffer; /* empty */
     bfile.strm.next_out = (char *)b->next_to_fill;
     bfile.strm.avail_out = b->end - b->next_to_fill;
-  }  
+  }
   close(fin);
   exit(0);
 }

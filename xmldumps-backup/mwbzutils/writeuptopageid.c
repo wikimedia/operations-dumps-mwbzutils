@@ -61,10 +61,10 @@ void show_version(char *version_string) {
 }
 
 /* note that even if we have only read a partial line
-   of text from the body of the page, (cause the text 
-   is longer than our buffer), it's fine, since the 
+   of text from the body of the page, (cause the text
+   is longer than our buffer), it's fine, since the
    <> delimiters only mark xml, they can't appear
-   in the page text. 
+   in the page text.
 
    returns new state */
 States setState (char *line, States currentState, int startPageID, int endPageID) {
@@ -168,7 +168,7 @@ int main(int argc,char **argv) {
   char line[4097];
   /* order of magnitude of 2K lines of 80 chrs each,
      no header of either a page nor the mw header should
-     ever be longer than that. At least not for some good 
+     ever be longer than that. At least not for some good
      length of time. */
   char mem[MAXHEADERLEN];
 
@@ -202,9 +202,9 @@ int main(int argc,char **argv) {
 
   errno = 0;
   startPageID = strtol(argv[optind], &nonNumeric, 10);
-  if (startPageID == 0 || 
+  if (startPageID == 0 ||
       *nonNumeric != 0 ||
-      nonNumeric == (char *) &startPageID || 
+      nonNumeric == (char *) &startPageID ||
       errno != 0) {
     usage("The value you entered for startPageID must be a positive integer.");
     exit(-1);
@@ -212,15 +212,15 @@ int main(int argc,char **argv) {
   optind++;
   if (optind < argc) {
     endPageID = strtol(argv[optind], &nonNumeric, 10);
-    if (endPageID == 0 || 
+    if (endPageID == 0 ||
 	*nonNumeric != 0 ||
-	nonNumeric == (char *) &endPageID || 
+	nonNumeric == (char *) &endPageID ||
 	errno != 0) {
       usage("The value you entered for endPageID must be a positive integer.\n");
       exit(-1);
     }
   }
-  
+
   while (fgets(line, sizeof(line)-1, stdin) != NULL) {
     text=line;
     while (*text && isspace(*text))

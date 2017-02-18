@@ -33,7 +33,7 @@ void shift_bytes_left(unsigned char *buffer, int buflen, int numbits) {
   for (i=0; i<buflen; i++) {
     /* left 1 */
     buffer[i] = (unsigned char) ((int) (buffer[i]) << numbits);
-      
+
     /* grab leftmost from next byte */
     if (i < buflen-1) {
       buffer[i] = ( unsigned char ) ( (unsigned int) buffer[i] | ( ( ((unsigned int) buffer[i+1])  & bit_mask(numbits,MASKLEFT) ) >> (8-numbits) ) );
@@ -48,7 +48,7 @@ void shift_bytes_right(unsigned char *buffer, int buflen, int numbits) {
   for (i=buflen-1; i>=0; i--) {
     /* right 1 */
     buffer[i] = (unsigned char) ((int) (buffer[i]) >> numbits);
-      
+
     /* grab rightmost from prev byte */
     if (i > 0) {
       buffer[i] = ( unsigned char ) ((unsigned int) buffer[i] | ( ((unsigned int) (buffer[i-1])<<(8-numbits))  & bit_mask(numbits,MASKLEFT)));
@@ -78,7 +78,7 @@ unsigned char ** init_marker() {
   return(marker);
 }
 
-/* buff1 is some random bytes, buff2 is some random bytes which we expect to start with the contents of buff1, 
+/* buff1 is some random bytes, buff2 is some random bytes which we expect to start with the contents of buff1,
  both buffers are  bit-shifted to the right "bitsrightshifted". this function compares the two and returns 1 if buff2
  matches and 0 otherwise. */
 int bytes_compare(unsigned char *buff1, unsigned char *buff2, int numbytes, int bitsrightshifted) {
@@ -152,9 +152,9 @@ int find_next_bz2_block_marker(int fin, bz_info_t *bfile, int direction) {
     fprintf(stderr,"read of file failed\n");
     return(-1);
   }
-  /* must be after 4 byte file header, and we add a leftmost byte to the buffer 
+  /* must be after 4 byte file header, and we add a leftmost byte to the buffer
      of data read in case some bits have been shifted into it */
-  while (bfile->position <= bfile->file_size - 6 && bfile->position >= 0 && bfile->bits_shifted < 0) { 
+  while (bfile->position <= bfile->file_size - 6 && bfile->position >= 0 && bfile->bits_shifted < 0) {
     bfile->bits_shifted = check_buffer_for_bz2_block_marker(bfile);
     if (bfile->bits_shifted < 0) {
       if (direction == FORWARD) {
@@ -182,7 +182,7 @@ int find_next_bz2_block_marker(int fin, bz_info_t *bfile, int direction) {
 }
 
 /*
-  initializes the bz2 strm structure, 
+  initializes the bz2 strm structure,
   calls the BZ2 decompression library initializer
 
   returns:
@@ -221,7 +221,7 @@ off_t get_file_size(int fin) {
   reads the first 4 bytes from a bz2 file (should be
   "BZh" followed by the block size indicator, typically "9")
   and passes them into the BZ2 decompression library.
-  This must be done before decompression of any block of the 
+  This must be done before decompression of any block of the
   file is attempted.
 
   returns:
@@ -255,14 +255,14 @@ int decompress_header(int fin, bz_info_t *bfile) {
 
 /*
   seek to appropriate offset as specified in bfile,
-  read compressed data into buffer indicated by bfile, 
+  read compressed data into buffer indicated by bfile,
   update the bfile structure accordingly,
   save the overflow byte (bit-shifted data = suck)
   this is for the *first* buffer of data in a stream,
   for subsequent buffers use fill_buffer_to_decompress()
 
   this will set bfile->eof on eof.  no other indicator
-  will be provided. 
+  will be provided.
 
   returns:
     0 on success
@@ -299,12 +299,12 @@ int setup_first_buffer_to_decompress(int fin, bz_info_t *bfile) {
   return(0);
 }
 
-/* 
+/*
    set up the marker, seek to right place, get first
    buffer of compressed data for processing
    bfile->position must be set to desired offset first by caller.
    returns:
-   -1 if no marker or other error, position of next read if ok 
+   -1 if no marker or other error, position of next read if ok
 */
 int init_bz2_file(bz_info_t *bfile, int fin, int direction) {
   off_t seekresult;
@@ -341,7 +341,7 @@ int init_bz2_file(bz_info_t *bfile, int fin, int direction) {
 
 
 /*
-  read compressed data into buffer indicated by bfile, 
+  read compressed data into buffer indicated by bfile,
   from current position of file,
   stuffing the overflow byte in first.
   update the bfile structure accordingly
@@ -351,7 +351,7 @@ int init_bz2_file(bz_info_t *bfile, int fin, int direction) {
   setup_first_buffer_to_decompress()
 
   this will set bfile->eof on eof.  no other indicator
-  will be provided. 
+  will be provided.
 
   returns:
     0 on success
@@ -376,11 +376,11 @@ int fill_buffer_to_decompress(int fin, bz_info_t *bfile, int ret) {
   return(0);
 }
 
-/* size of buffer is bytes usable. there will be a null byte at the end 
+/* size of buffer is bytes usable. there will be a null byte at the end
 
    what we do with the buffer:
-   - read from front of buffer to end, 
-   - fill from point where prev read did not fill buffer, or from where 
+   - read from front of buffer to end,
+   - fill from point where prev read did not fill buffer, or from where
      move of data at end of buffer to beginning left room,
    - mark a string of bytes (starting from what's available to read) as "read"
 
@@ -468,15 +468,15 @@ int get_and_decompress_data(bz_info_t *bfile, int fin, unsigned char *bufferout,
   return(0);
 }
 
-/* 
+/*
    fill output buffer in b with uncompressed data from bfile
    if this is the first call to the function for this file,
    the file header will be read, and the first buffer of
    uncompressed data will be prepared.  bfile->position
-   should be set to the offset (from the beginning of file) from 
+   should be set to the offset (from the beginning of file) from
    which to find the first bz2 block.
-   
-   returns: 
+
+   returns:
      on success, number of bytes read (may be 0)
      -1 on error
 */
@@ -486,7 +486,7 @@ int get_buffer_of_uncompressed_data(buf_info_t *b, int fin, bz_info_t *bfile, in
   if (buffer_is_full(b)) {
     return(0);
   }
- 
+
   if (buffer_is_empty(b)) {
     b->next_to_fill = b->buffer;
   }
@@ -519,10 +519,10 @@ void dumpbuf_info_t(buf_info_t *b) {
   fprintf(stderr, "b->bytes_avail: %ld\n", (long int) b->bytes_avail);
 }
 
-/* 
+/*
    copy text from end of buffer to the beginning, that we want to keep
    around for further processing (i.e. further regex matches)
-   returns number of bytes copied 
+   returns number of bytes copied
 */
 int  move_bytes_to_buffer_start(buf_info_t *b, unsigned char *fromwhere, int maxbytes) {
   int i, tocopy;
@@ -540,7 +540,7 @@ int  move_bytes_to_buffer_start(buf_info_t *b, unsigned char *fromwhere, int max
     }
     b->next_to_fill = b->buffer + tocopy;
     b->next_to_fill[0] = '\0';
-    b->next_to_read = b->buffer; 
+    b->next_to_read = b->buffer;
     b->bytes_avail = tocopy;
     return(tocopy);
   }

@@ -70,11 +70,11 @@ void show_version(char *version_string) {
   exit(-1);
 }
 
-/* 
-   find the first bz2 block marker in the file, 
+/*
+   find the first bz2 block marker in the file,
    from its current position,
-   then set up for decompression from that point 
-   returns: 
+   then set up for decompression from that point
+   returns:
      0 on success
      -1 if no marker or other error
 */
@@ -110,7 +110,7 @@ char *get_hostname_from_xml_header(int fin) {
   regex_t compiled_base_expr;
   /*	 <base>http://el.wiktionary.org/wiki/...</base> */
   /*  <base>http://trouble.localdomain/wiki/ */
-  char *base_expr = "<base>http://([^/]+)/"; 
+  char *base_expr = "<base>http://([^/]+)/";
   int length=5000; /* output buffer size */
 
   buf_info_t *b;
@@ -138,7 +138,7 @@ char *get_hostname_from_xml_header(int fin) {
     /* so someday the header might grow enough that <base> isn't in the first 1000 characters but we'll ignore that for now */
     if (bfile.bytes_read && b->bytes_avail > 1000) {
       /* get project name and language name from the file header
-	 format: 
+	 format:
 	 <mediawiki xmlns="http://www.mediawiki.org/xml/export-0.5/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mediawiki.org/xml/export-0.5/ http://www.mediawiki.org/xml/export-0.5.xsd" version="0.5" xml:lang="el">
 	 <siteinfo>
 	 <sitename>Βικιλεξικό</sitename>
@@ -191,9 +191,9 @@ long int get_xml_elt_value(char *line, char *tag) {
    It scans through the entire file looking for the page id which corresponds
    to the revision id.  This can take up to 5 minutes for the larger
    stub history files; clearly we don't want to do this unless we
-   have no other option. 
+   have no other option.
    we need this in the case where the page text is huge (eg en wp pageid 5137507
-   which has a cumulative text length across all revisions of > 163 GB. 
+   which has a cumulative text length across all revisions of > 163 GB.
    This can take over two hours to uncompress and scan through looking for
    the next page id, so we cheat */
 long int get_page_id_from_rev_id_via_stub(long int rev_id, char *stubfile) {
@@ -243,9 +243,9 @@ long int get_page_id_from_rev_id_via_stub(long int rev_id, char *stubfile) {
 }
 
 /* returns pageid, or -1 on error. this requires network access,
- it does an api call to the appropriate server for the appropriate project 
+ it does an api call to the appropriate server for the appropriate project
  we need this in the case where the page text is huge (eg en wp pageid 5137507
- which has a cumulative text length across all revisions of > 163 GB. 
+ which has a cumulative text length across all revisions of > 163 GB.
  This can take over two hours to uncompress and scan through looking for
  the next page id, so we cheat */
 int get_page_id_from_rev_id_via_api(long int rev_id, int fin) {
@@ -257,7 +257,7 @@ int get_page_id_from_rev_id_via_api(long int rev_id, int fin) {
   char *api_call = "/w/api.php?action=query&format=xml&revids=";
   regmatch_t *match_page_id_expr;
   regex_t compiled_page_id_expr;
-  char *page_id_expr = "<pages><page pageid=\"([0-9]+)\""; 
+  char *page_id_expr = "<pages><page pageid=\"([0-9]+)\"";
 
   hostname = get_hostname_from_xml_header(fin);
   if (!hostname) {
@@ -278,8 +278,8 @@ int get_page_id_from_rev_id_via_api(long int rev_id, int fin) {
     return(-1);
   }
   else {
-    /* dig the page id out of the buffer 
-       format: 
+    /* dig the page id out of the buffer
+       format:
        <?xml version="1.0"?><api><query><pages><page pageid="6215" ns="0" title="hystérique" /></pages></query></api>
     */
     match_page_id_expr = (regmatch_t *)malloc(sizeof(regmatch_t)*3);
@@ -294,8 +294,8 @@ int get_page_id_from_rev_id_via_api(long int rev_id, int fin) {
   }
 }
 
-/* 
-   get the first page id after position in file 
+/*
+   get the first page id after position in file
    if a pageid is found, the structure pinfo will be updated accordingly
    use_api nonzero means that we will fallback to ask the api about a page
    that contains a given rev_id, in case we wind up with a huge page which
@@ -311,7 +311,7 @@ int get_first_page_id_after_offset(int fin, off_t position, id_info_t *pinfo, in
   regex_t compiled_page, compiled_page_id, compiled_rev, compiled_rev_id;
   int length=5000; /* output buffer size */
   char *page = "<page>";
-  char *page_id = "<page>\n[ ]+<title>[^<]+</title>\n([ ]+<ns>[0-9]+</ns>\n)?[ ]+<id>([0-9]+)</id>\n"; 
+  char *page_id = "<page>\n[ ]+<title>[^<]+</title>\n([ ]+<ns>[0-9]+</ns>\n)?[ ]+<id>([0-9]+)</id>\n";
   char *rev = "<revision>";
   char *rev_id_expr = "<revision>\n[ ]+<id>([0-9]+)</id>\n";
 
@@ -373,7 +373,7 @@ int get_first_page_id_after_offset(int fin, off_t position, id_info_t *pinfo, in
 	}
 	else {
 	  /* should never happen */
-	  fprintf(stderr,"regex gone bad...\n"); 
+	  fprintf(stderr,"regex gone bad...\n");
 	  exit(-1);
 	}
       }
@@ -387,12 +387,12 @@ int get_first_page_id_after_offset(int fin, off_t position, id_info_t *pinfo, in
 	  }
 	}
 
-	/* this needs to be called if we don't find a page by X tries, or Y buffers read, 
-	   and we need to retrieve a page id from a revision id in the text instead 
+	/* this needs to be called if we don't find a page by X tries, or Y buffers read,
+	   and we need to retrieve a page id from a revision id in the text instead
 	   where does this obscure figure come from? assume we get at least 2-1 compression ratio,
 	   text revs are at most 10mb plus a little, then if we read this many buffers we should have
 	   at least one rev id in there.  20 million / 5000 or whatever it is, is 4000 buffers full of crap
-	   hopefully that doesn't take forever. 
+	   hopefully that doesn't take forever.
 	*/
 	if (buffer_count>(20000000/BUFINSIZE) && rev_id) {
 	  if (verbose) fprintf(stderr, "passed retries cutoff for using api\n");
@@ -466,7 +466,7 @@ int get_first_page_id_after_offset(int fin, off_t position, id_info_t *pinfo, in
 /* search for pageid in a bz2 file, given start and end offsets
    to search for
    we guess by the most boring method possible (shrink the
-   interval according to the value found on the last guess, 
+   interval according to the value found on the last guess,
    try midpoint of the new interval)
    multiple calls of this will get the job done.
    interval has left end = right end if search is complete.
@@ -477,23 +477,23 @@ int get_first_page_id_after_offset(int fin, off_t position, id_info_t *pinfo, in
    why? because then we can use the output for prefetch
    for xml dumps and be sure a specific page range is covered :-P
 
-   return value from guess, or -1 on error. 
+   return value from guess, or -1 on error.
  */
 int do_iteration(iter_info_t *iinfo, int fin, id_info_t *pinfo, int use_api, int use_stub, char *stubfilename, int verbose) {
   int res;
   off_t new_position;
   off_t interval;
 
-  /* 
-     last_position is somewhere in the interval, perhaps at an end 
+  /*
+     last_position is somewhere in the interval, perhaps at an end
      last_value is the value we had at that position
   */
-  
+
   interval = (iinfo->right_end - iinfo->left_end)/(off_t)2;
   if (interval == (off_t)0) {
     interval = (off_t)1;
   }
-  if (verbose) 
+  if (verbose)
     fprintf(stderr,"interval size is %"PRId64", left end %"PRId64", right end %"PRId64", last val %d\n",interval, iinfo->left_end, iinfo->right_end, iinfo->last_value);
   /* if we're this close, we'll check this value and be done with it */
   if (iinfo->right_end -iinfo->left_end < (off_t)2) {
@@ -533,7 +533,7 @@ int do_iteration(iter_info_t *iinfo, int fin, id_info_t *pinfo, int use_api, int
       return(iinfo->last_value);
     }
     /* in theory we were moving towards beginning of file, should not have issues, so bail here */
-    else { 
+    else {
       if (verbose) fprintf(stderr,"something very broken, giving up\n");
       return(-1);
     }

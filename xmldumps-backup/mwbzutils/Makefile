@@ -1,7 +1,7 @@
 # ------------------------------------------------------------------
 # This Makefile builds binaries which rely on three source files
-# from libbzip2 version 1.0.6. (See bz2libfuncs.c, bzlib.h and 
-# bzlib_private.h; the first is slightly modified while the 
+# from libbzip2 version 1.0.6. (See bz2libfuncs.c, bzlib.h and
+# bzlib_private.h; the first is slightly modified while the
 # second is unchanged from the library version.)
 #
 # The copyright for those two files  is as follows:
@@ -142,7 +142,7 @@ uninstall:
 	rm -f $(DOCDIR)LICENSE_BZ
 	rm -f $(DOCDIR)COPYING
 
-clean: 
+clean:
 	rm -f *.o *.a dumplastbz2block findpageidinbz2xml \
 		getlastidinbz2xml \
 		checkforbz2footer dumpbz2filefromoffset \
@@ -155,7 +155,7 @@ distclean: clean
 reallyclean: distclean
 	rm -f docs/*.1
 
-dist: 
+dist:
 	rm -f $(DISTNAME)
 	ln -s -f . $(DISTNAME)
 	tar cvf $(DISTNAME).tar \

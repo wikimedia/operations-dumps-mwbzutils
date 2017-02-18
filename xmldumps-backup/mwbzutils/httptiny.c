@@ -7,7 +7,7 @@
 #include <netdb.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#include <sys/ioctl.h> 
+#include <sys/ioctl.h>
 #include <string.h>
 #include <unistd.h>
 
@@ -87,7 +87,7 @@ int doread(int sd, char *buf, int length, struct timeval *timeout)
     result = select(FD_SETSIZE,&fds,NULL,NULL,timeout);
     if (result <= 0) {
       perror("read error of some sort (0)");
-      
+
     }
     else {
       result=recv(sd,buf+count,length-count,0);
@@ -108,8 +108,8 @@ int doread(int sd, char *buf, int length, struct timeval *timeout)
 	  else result=recv(sd,buf+count,length-count,0);
 	}
 	else {
-	  fprintf(stderr,"%s: can't read from socket\n",whoami); 
-	  perror(whoami); 
+	  fprintf(stderr,"%s: can't read from socket\n",whoami);
+	  perror(whoami);
 	  return(-1);
 	}
       }
@@ -134,7 +134,7 @@ int dowrite(int sd,char *message,int length)
     result=send(sd,message,(unsigned int) length,0);
     if (result == -1) {
       perror("some error, let's see it");
-      if (errno!=EAGAIN) { 
+      if (errno!=EAGAIN) {
 	fprintf(stderr,"%s: write to server failed\n",whoami);
 	perror(whoami);
 	exit(1);
@@ -142,13 +142,13 @@ int dowrite(int sd,char *message,int length)
     }
     else break;
   }
-  return(result);     
+  return(result);
 }
 
 int doconnect(int *sd,struct timeval *timeout,struct sockaddr_in *sa_us)
 {
   fd_set fds;
-  
+
   if ((*sd = socket(AF_INET,SOCK_STREAM,0)) == -1) {
     fprintf(stderr, "%s: could not get socket\n",whoami);
     perror(whoami);
@@ -169,7 +169,7 @@ int doconnect(int *sd,struct timeval *timeout,struct sockaddr_in *sa_us)
 	exit(1);
       }
       else if ((connect(*sd,(struct sockaddr *) sa_us,sizeof(*sa_us))== -1)
-	       && ( errno != EISCONN)) { 
+	       && ( errno != EISCONN)) {
 	/* shouldn't in theory but.. */
         fprintf(stderr, "%s: connect failed\n",whoami);
         perror(whoami);
