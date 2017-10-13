@@ -45,7 +45,8 @@ void usage(char *message) {
 "                         into a separate stream at the end.\n"
 "  -b, --buildindex:      Generate a file containing an index of pages ids and titles\n"
 "                         per stream.  Each line contains: offset-to-stream:pageid:pagetitle\n"
-"                         If filename ends in '.bz2' the file will be written in bz2 format.\n"
+"                         If filename ends in '.bz2' or '.bz2' plus a file extension .[a-z]*,\n"
+"                         the file will be written in bz2 format.\n"
 "  -v, --verbose:         Write lots of debugging output to stderr.  This option can be used\n"
 "                         multiple times to increase verbosity.\n"
 "  -h, --help             Show this help message\n"
@@ -324,6 +325,7 @@ int main(int argc, char **argv) {
   int verbose = 0;
   FILE *indexfd = NULL;
   int indexcompressed = 0;
+  char *dotPosition = NULL;
 
   while (1) {
     optc=getopt_long_only(argc,argv,"p:b:v", optvalues, &optindex);
@@ -357,10 +359,24 @@ int main(int argc, char **argv) {
       usage("failed to open index file for write.\n");
     }
     if (!strcmp(indexFilename+(strlen(indexFilename)-4),".bz2")) {
+      /* filename ends in .bz2 */
+      indexcompressed++;
+    }
+    else {
+      dotPosition = strrchr(indexFilename, '.');
+      if (dotPosition != NULL) {
+	*dotPosition = '\0';
+	if (!strcmp(indexFilename+(strlen(indexFilename)-4),".bz2")) {
+	  /* filename ends in .bz2.something */
+          indexcompressed++;
+        }
+	*dotPosition = '.';
+      }
+    }
+    if (indexcompressed) {
       if (verbose) {
 	fprintf(stderr,"index file will be bz2 compressed.\n");
       }
-      indexcompressed++;
       setupIndexBz2Stream();
     }
   }
