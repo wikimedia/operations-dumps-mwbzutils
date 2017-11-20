@@ -20,7 +20,7 @@ VERSION        = "0.0.7"
 CC            ?= gcc
 BIGFILES       = -D_FILE_OFFSET_BITS=64
 CPPFLAGS      += $(BIGFILES) -DVERSION=\"$(VERSION)\"
-CFLAGS        ?= -Wall -O2
+CFLAGS        ?= -Wall -Werror -O2
 
 build: checkforbz2footer dumpbz2filefromoffset \
 	dumplastbz2block findpageidinbz2xml \
