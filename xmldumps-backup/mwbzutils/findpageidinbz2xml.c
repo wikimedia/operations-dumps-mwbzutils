@@ -197,7 +197,7 @@ long int get_xml_elt_value(char *line, char *tag) {
    This can take over two hours to uncompress and scan through looking for
    the next page id, so we cheat */
 long int get_page_id_from_rev_id_via_stub(long int rev_id, char *stubfile) {
-  gzFile *gz;
+  gzFile gz;
   int page_id = -1;
   char buf[8192];
   char *bufp;
