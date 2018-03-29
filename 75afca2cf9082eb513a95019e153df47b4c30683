@@ -1,0 +1,96 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "5f24fa41_58d2af3f",
+        "filename": "xmldumps-backup/mwbzutils/filter.c",
+        "patchSetId": 1
+      },
+      "lineNbr": 37,
+      "author": {
+        "id": 2842
+      },
+      "writtenOn": "2018-03-29T12:54:32Z",
+      "side": 1,
+      "message": "trailing space",
+      "range": {
+        "startLine": 37,
+        "startChar": 14,
+        "endLine": 37,
+        "endChar": 15
+      },
+      "revId": "75afca2cf9082eb513a95019e153df47b4c30683",
+      "serverId": "e9e9afe9-4712-486d-8885-f54b72dd1951",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "66d2dd7a_307dcc6f",
+        "filename": "xmldumps-backup/mwbzutils/filter.c",
+        "patchSetId": 1
+      },
+      "lineNbr": 90,
+      "author": {
+        "id": 2842
+      },
+      "writtenOn": "2018-03-29T12:54:32Z",
+      "side": 1,
+      "message": "Trailing spaces",
+      "range": {
+        "startLine": 90,
+        "startChar": 0,
+        "endLine": 90,
+        "endChar": 4
+      },
+      "revId": "75afca2cf9082eb513a95019e153df47b4c30683",
+      "serverId": "e9e9afe9-4712-486d-8885-f54b72dd1951",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "d53e6eb6_cd58a7b9",
+        "filename": "xmldumps-backup/mwbzutils/filter.c",
+        "patchSetId": 1
+      },
+      "lineNbr": 165,
+      "author": {
+        "id": 2842
+      },
+      "writtenOn": "2018-03-29T12:54:32Z",
+      "side": 1,
+      "message": "Trailing spaces.",
+      "range": {
+        "startLine": 165,
+        "startChar": 0,
+        "endLine": 165,
+        "endChar": 2
+      },
+      "revId": "75afca2cf9082eb513a95019e153df47b4c30683",
+      "serverId": "e9e9afe9-4712-486d-8885-f54b72dd1951",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "802ce632_0b294f3a",
+        "filename": "xmldumps-backup/mwbzutils/filter.c",
+        "patchSetId": 1
+      },
+      "lineNbr": 200,
+      "author": {
+        "id": 2842
+      },
+      "writtenOn": "2018-03-29T12:54:32Z",
+      "side": 1,
+      "message": "Trailing space",
+      "range": {
+        "startLine": 200,
+        "startChar": 4,
+        "endLine": 200,
+        "endChar": 5
+      },
+      "revId": "75afca2cf9082eb513a95019e153df47b4c30683",
+      "serverId": "e9e9afe9-4712-486d-8885-f54b72dd1951",
+      "unresolved": true
+    }
+  ]
+}
