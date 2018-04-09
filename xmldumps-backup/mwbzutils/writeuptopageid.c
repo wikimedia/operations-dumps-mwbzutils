@@ -16,7 +16,7 @@ void usage(char *message) {
   char * help =
 "Usage: writeuptopageid [--version|--help]\n"
 "   or: writeuptopageid <startpageid> <endpageid>\n\n"
-"Reads a MediaWiki XML file from stdin anfd writes a range of pages from the file\n"
+"Reads a MediaWiki XML file from stdin and writes a range of pages from the file\n"
 "to stdout, starting with and including the startpageid, up to but not including\n"
 "the endpageid.\n"
 "This program can be used in processing XML dump files that were only partially\n"
