@@ -16,7 +16,7 @@
 # 2010-2013: see the file COPYING for details.
 # ------------------------------------------------------------------
 
-VERSION        = "0.0.7"
+VERSION        = "0.0.8"
 CC            ?= gcc
 BIGFILES       = -D_FILE_OFFSET_BITS=64
 CPPFLAGS      += $(BIGFILES) -DVERSION=\"$(VERSION)\"
@@ -69,8 +69,8 @@ getlastidinbz2xml: $(OBJSBZ) mwbzlib.o getlastidinbz2xml.o
 recompressxml: $(OBJSBZ) recompressxml.o
 	$(CC) $(LDFLAGS) -o recompressxml recompressxml.o $(LIBS)
 
-writeuptopage: $(OBJSBZ) writeuptopageid.o
-	$(CC) $(LDFLAGS) -o writeuptopageid writeuptopageid.o
+writeuptopageid: $(OBJSBZ) writeuptopageid.o
+	$(CC) $(LDFLAGS) -o writeuptopageid writeuptopageid.o $(LIBS) -lz
 
 %.o: %.c
 	$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
