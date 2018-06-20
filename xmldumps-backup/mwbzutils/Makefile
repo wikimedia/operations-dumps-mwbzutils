@@ -66,8 +66,8 @@ findpageidinbz2xml: $(OBJSBZ) mwbzlib.o httptiny.o findpageidinbz2xml.o
 getlastidinbz2xml: $(OBJSBZ) mwbzlib.o getlastidinbz2xml.o
 	$(CC) $(LDFLAGS) -o getlastidinbz2xml getlastidinbz2xml.o $(OBJS) $(LIBS)
 
-recompressxml: $(OBJSBZ) recompressxml.o
-	$(CC) $(LDFLAGS) -o recompressxml recompressxml.o $(LIBS)
+recompressxml: $(OBJSBZ) iohandlers.o recompressxml.o
+	$(CC) $(LDFLAGS) -o recompressxml iohandlers.o recompressxml.o $(LIBS) -lz
 
 writeuptopageid: $(OBJSBZ) iohandlers.o writeuptopageid.o
 	$(CC) $(LDFLAGS) -o writeuptopageid iohandlers.o writeuptopageid.o $(LIBS) -lz

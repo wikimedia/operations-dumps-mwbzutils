@@ -11,6 +11,7 @@
 #include <regex.h>
 #include <ctype.h>
 #include <inttypes.h>
+#include "iohandlers.h"
 #include "bzlib.h"
 
 char inBuf[4096];
@@ -29,8 +30,6 @@ char *idExpr = "<id>([0-9]+)</id>\n";
 regmatch_t *matchIdExpr;
 regex_t compiledMatchIdExpr;
 
-bz_stream strm_indx;
-
 void usage(char *message) {
   char * help =
 "Usage: recompressxml --pagesperstream n [--buildindex filename] [--verbose]\n"
@@ -46,7 +45,15 @@ void usage(char *message) {
 "  -b, --buildindex:      Generate a file containing an index of pages ids and titles\n"
 "                         per stream.  Each line contains: offset-to-stream:pageid:pagetitle\n"
 "                         If filename ends in '.bz2' or '.bz2' plus a file extension .[a-z]*,\n"
-"                         the file will be written in bz2 format.\n"
+"                         the file will be written in bz2 format; if it ends in '.gz' or \n"
+"                         '.gz' plus a file extension .[a-z]*, it wll be written in gz format.\n"
+"  -i  --inpath:          If not specified, input stream will be read from stdin. Otherwise,\n"
+"                         it will be read from the specified file; if the file ends in gz\n"
+"                         of .bz2 it will be decompressed on the fly.\n"
+"  -o  --outpath:         If not specified, output will be written to stdout, otherwise to\n"
+"                         the file specified. If the filename ends in .bz2 or .gz, it will\n"
+"                         use the appropriate compression. IF NOT it will be written\n"
+"                         uncompressed, which probably defeats the point of this program.\n"
 "  -v, --verbose:         Write lots of debugging output to stderr.  This option can be used\n"
 "                         multiple times to increase verbosity.\n"
 "  -h, --help             Show this help message\n"
@@ -78,19 +85,6 @@ void show_version(char *version_string) {
   fprintf(stderr,"recompressxml %s\n", version_string);
   fprintf(stderr,"%s",copyright);
   exit(-1);
-}
-
-void setupIndexBz2Stream() {
-  int bz_verbosity = 0;
-  int bz_workFactor = 0;
-  int bz_blockSize100k = 9;
-
-  strm_indx.bzalloc = NULL;
-  strm_indx.bzfree = NULL;
-  strm_indx.opaque = NULL;
-
-  /* init bzip compression stuff */
-  BZ2_bzCompressInit(&(strm_indx), bz_blockSize100k, bz_verbosity, bz_workFactor);
 }
 
 void setupRegexps() {
@@ -161,58 +155,34 @@ int endsXmlBlock(char *buf, int header) {
   else return 0;
 }
 
-off_t endBz2Stream(bz_stream *strm, char *outBuf, int bufSize, FILE *fd) {
-  int result;
-  off_t offset;
-
-  do {
-    strm->avail_in = 0;
-    strm->next_out = outBuf;
-    strm->avail_out = 8192;
-    result = BZ2_bzCompress ( strm, BZ_FINISH );
-    fwrite(outBuf,bufSize-strm->avail_out,1,fd);
-  } while (result != BZ_STREAM_END);
-  offset = (off_t)strm->total_out_lo32 | ((off_t)strm->total_out_hi32 << 32);
-  BZ2_bzCompressEnd(strm);
-  return(offset);
-}
-
-void writeCompressedXmlBlock(int header, int count, off_t *fileOffset, FILE *indexfd, int indexcompressed, int verbose)
+void writeCompressedXmlBlock(int header, int count, off_t *fileOffset, InputHandler *ihandler,
+			     OutputHandler *ohandler, OutputHandler *index_ohandler,int verbose)
  {
-  bz_stream strm;
-  int bz_verbosity = 0;
-  int bz_workFactor = 0;
-  int bz_blockSize100k = 9;
   int wroteSomething = 0;
   int blocksDone = 0;
-
-  strm.bzalloc = NULL;
-  strm.bzfree = NULL;
-  strm.opaque = NULL;
 
   char *pageTitle = NULL;
   int pageId = 0;
   enum States{WantPage,WantPageTitle,WantPageId};
   int state = WantPage;
 
-  /* init bzip compression stuff */
-  BZ2_bzCompressInit(&strm, bz_blockSize100k, bz_verbosity, bz_workFactor);
+  /* if we're past the first block, we append the rest */
+  if (!header && ohandler->path != NULL)
+    outputhandler_appendmode(ohandler);
 
-  while (fgets(inBuf, sizeof(inBuf), stdin) != NULL) {
+  if (ohandler->closed && ohandler->open != NULL)
+    ohandler->open(ohandler);
+  if (verbose > 1)
+    fprintf(stderr,"opened the output file if needed\n");
+
+  while (ihandler->fgets(ihandler, inBuf, sizeof(inBuf)-1) != NULL) {
     if (verbose > 1) {
       fprintf(stderr,"input buffer is: ");
       fprintf(stderr,"%s",inBuf);
     }
 
     wroteSomething = 1;
-    /* add the buffer content to stuff to be compressed */
-    strm.next_in = inBuf;
-    strm.avail_in = strlen(inBuf);
-    strm.next_out = outBuf;
-    strm.avail_out = 8192;
-
-    /* we are to build an index. */
-    if (indexfd) {
+    if (index_ohandler) {
       if (verbose > 2) {
 	fprintf(stderr,"doing index check\n");
       }
@@ -240,69 +210,51 @@ void writeCompressedXmlBlock(int header, int count, off_t *fileOffset, FILE *ind
 	pageId = hasId(inBuf);
 	if (pageId) {
 	  state = WantPage;
-	  if (indexcompressed) {
-	    if (verbose) {
-	      fprintf(stderr,"writing line to compressed index file\n");
-	    }
-	    sprintf(inBuf_indx,"%"PRId64":%d:%s\n",*fileOffset,pageId,pageTitle);
-	    strm_indx.next_in = inBuf_indx;
-	    strm_indx.avail_in = strlen(inBuf_indx);
-	    do {
-	      if (verbose > 2) {
-		fprintf(stderr,"bytes left to read for index compression: %d\n",strm_indx.avail_in);
-	      }
-	      strm_indx.next_out = outBuf_indx;
-	      strm_indx.avail_out = 8192;
-	      BZ2_bzCompress ( &strm_indx, BZ_RUN );
-	      fwrite(outBuf_indx,sizeof(outBuf_indx)-strm_indx.avail_out,1,indexfd);
-	    } while (strm_indx.avail_in >0);
+	  if (verbose) {
+	    fprintf(stderr,"writing line to index file\n");
 	  }
-	  else {
-	    if (verbose) {
-	      fprintf(stderr,"writing line to index file\n");
-	    }
-	    fprintf(indexfd,"%"PRId64":%d:%s\n",*fileOffset,pageId,pageTitle);
-	  }
+	  sprintf(outBuf_indx,"%"PRId64":%d:%s\n",*fileOffset,pageId,pageTitle);
+	  index_ohandler->write(index_ohandler,outBuf_indx,strlen(outBuf_indx));
 	  pageId = 0;
 	  pageTitle = NULL;
 	}
       }
     }
-    do {
-      if (verbose > 2) {
-	fprintf(stderr,"bytes left to read for text compression: %d\n",strm.avail_in);
-      }
-      strm.next_out = outBuf;
-      strm.avail_out = 8192;
-      BZ2_bzCompress ( &strm, BZ_RUN );
-      fwrite(outBuf,sizeof(outBuf)-strm.avail_out,1,stdout);
-    } while (strm.avail_in > 0);
-    if (verbose > 1) fprintf(stderr,"avail_out is now: %d\n", strm.avail_out);
-
+    if (inBuf[0])
+      ohandler->write(ohandler, inBuf, strlen(inBuf));
     if (endsXmlBlock(inBuf, header)) {
       /* special case: doing the siteinfo stuff at the beginning */
+      inBuf[0] = '\0';
       if (verbose) {
-	fprintf(stderr,"end of header found\n");
+	fprintf(stderr,"end of header, page, or mw found\n");
       }
       if (header) {
-	*fileOffset += endBz2Stream(&strm, outBuf, sizeof(outBuf), stdout);
+	*fileOffset = outputhandler_get_offset(ohandler);
 	return;
       }
-
       blocksDone++;
       if (blocksDone % count == 0) {
 	if (verbose) fprintf(stderr, "end of xml block found\n");
-	/* close down bzip stream, we are done with this block */
-	*fileOffset += endBz2Stream(&strm, outBuf, sizeof(outBuf), stdout);
+	/* close down stream, we are done with this block */
+	if (ohandler->close)
+	  ohandler->close(ohandler);
+	*fileOffset = outputhandler_get_offset(ohandler);
 	return;
       }
     }
+    inBuf[0] = '\0';
   }
   if (verbose) fprintf(stderr,"eof reached\n");
   if (wroteSomething) {
-    /* close down bzip stream, we are done with this block */
-    *fileOffset += endBz2Stream(&strm, outBuf, sizeof(outBuf), stdout);
+    /* close down stream, we are done with this block */
+    if (ohandler->close)
+      ohandler->close(ohandler);
+    *fileOffset = outputhandler_get_offset(ohandler);
+    return;
   }
+  /* done with all input so close up shop */
+  if (ohandler->close)
+    ohandler->close(ohandler);
   return;
 }
 
@@ -313,6 +265,8 @@ int main(int argc, char **argv) {
 
   struct option optvalues[] = {
     {"buildindex", 1, 0, 'b'},
+    {"inpath", 1, 0, 'i'},
+    {"outpath", 1, 0, 'o'},
     {"help", 0, 0, 'h'},
     {"pagesperstream", 1, 0, 'p'},
     {"verbose", 0, 0, 'v'},
@@ -322,15 +276,24 @@ int main(int argc, char **argv) {
 
   int count = 0;
   char *indexFilename = NULL;
+  char *inpath = NULL;
   int verbose = 0;
   FILE *indexfd = NULL;
-  int indexcompressed = 0;
-  char *dotPosition = NULL;
+  char *outpath = NULL;
+  InputHandler *ihandler = NULL;
+  OutputHandler *ohandler = NULL;
+  OutputHandler *index_ohandler = NULL;
 
   while (1) {
-    optc=getopt_long_only(argc,argv,"p:b:v", optvalues, &optindex);
+    optc=getopt_long_only(argc,argv,"p:b:i:o:v", optvalues, &optindex);
     if (optc=='b') {
       indexFilename = optarg;
+    }
+    else if (optc=='i') {
+      inpath = optarg;
+    }
+    else if (optc=='o') {
+      outpath = optarg;
     }
     else if (optc=='h')
       usage(NULL);
@@ -358,52 +321,46 @@ int main(int argc, char **argv) {
     if (! indexfd) {
       usage("failed to open index file for write.\n");
     }
-    if (!strcmp(indexFilename+(strlen(indexFilename)-4),".bz2")) {
-      /* filename ends in .bz2 */
-      indexcompressed++;
-    }
-    else {
-      dotPosition = strrchr(indexFilename, '.');
-      if (dotPosition != NULL) {
-	*dotPosition = '\0';
-	if (!strcmp(indexFilename+(strlen(indexFilename)-4),".bz2")) {
-	  /* filename ends in .bz2.something */
-          indexcompressed++;
-        }
-	*dotPosition = '.';
-      }
-    }
-    if (indexcompressed) {
-      if (verbose) {
-	fprintf(stderr,"index file will be bz2 compressed.\n");
-      }
-      setupIndexBz2Stream();
-    }
+    index_ohandler = outputhandler_init(indexFilename);
+    if (index_ohandler->open != NULL)
+      index_ohandler->open(index_ohandler);
   }
+
+  ihandler = inputhandler_init(inpath);
+  if (ihandler->open != NULL) {
+    ihandler->open(ihandler);
+  }
+
+  ohandler = outputhandler_init(outpath);
 
   setupRegexps();
 
   offset = (off_t)0;
   /* deal with the XML header */
-  writeCompressedXmlBlock(1,count,&offset,indexfd,indexcompressed,verbose);
+  writeCompressedXmlBlock(1,count,&offset,ihandler,ohandler,index_ohandler,verbose);
 
-  while (!feof(stdin)) {
-    writeCompressedXmlBlock(0,count,&offset,indexfd,indexcompressed,verbose);
+  if (verbose) {
+      if (ihandler->eof(ihandler))
+          fprintf(stderr, "EOF reached for input file\n");
+  }
+  while (!ihandler->eof(ihandler)) {
+    writeCompressedXmlBlock(0,count,&offset,ihandler,ohandler,index_ohandler,verbose);
+    if (verbose) {
+        if (ihandler->eof(ihandler))
+            fprintf(stderr, "EOF reached for input file\n");
+    }
   }
 
   if (indexFilename) {
-    if (indexcompressed) {
-      if (verbose) {
-	fprintf(stderr,"closing bz2 index file stream.\n");
-      }
-      endBz2Stream(&strm_indx, outBuf_indx, sizeof(outBuf_indx), indexfd);
-    }
     if (verbose) {
       fprintf(stderr,"closing index file.\n");
     }
-    fclose(indexfd);
+    if (index_ohandler->close != NULL)
+      index_ohandler->close(index_ohandler);
   }
 
+  if (ihandler->close != NULL)
+    ihandler->close(ihandler);
   exit(0);
 
 }

@@ -51,6 +51,7 @@ InputHandler *inputhandler_init(char *path) {
     ih->open = NULL;
     ih->fgets = txt_fgets_i;
     ih->close = NULL;
+    ih->eof = txt_eof_i;
     return(ih);
   }
 
@@ -58,16 +59,19 @@ InputHandler *inputhandler_init(char *path) {
     ih->open = bz2_open_i;
     ih->fgets = bz2_fgets_i;
     ih->close = bz2_close_i;
+    ih->eof = bz2_eof_i;
   }
   else if (strlen(path) > 3 && !strcmp(path + strlen(path) - 3, ".gz")) {
     ih->open = gz_open_i;
     ih->fgets = gz_fgets_i;
     ih->close = gz_close_i;
+    ih->eof = gz_eof_i;
   }
   else {
     ih->open = txt_open_i;
     ih->fgets = txt_fgets_i;
     ih->close = txt_close_i;
+    ih->eof = txt_eof_i;
   }
   return(ih);
 }
@@ -77,16 +81,21 @@ int isfull(bz2buffer_t *buf) {
   else return(0);
 }
 
-void fill_buffer(bz2buffer_t *buf, BZFILE *fd) {
+int isempty(bz2buffer_t *buf) {
+  if (buf->bytes_avail == 0) return(1);
+  return(0);
+}
+
+int fill_buffer(bz2buffer_t *buf, BZFILE *fd) {
   int result;
 
-  if (isfull(buf)) return;
+  if (isfull(buf)) return(1);
   result = BZ2_bzread(fd, buf->buf + buf->nextin, sizeof(buf->buf) - buf->nextin);
-  if (result) {
+  if (result > 0) {
     buf->nextin += result;
     buf->bytes_avail += result;
   }
-  return;
+  return result;
 }
 
 int has_newline(bz2buffer_t *buf) {
@@ -111,11 +120,16 @@ char *bz2gets(BZFILE *fd, bz2buffer_t *buf, char *out, int out_size) {
   int newline_ind = -1;
   int out_ind = 0;
   int out_space_remaining = out_size -1;
+  int result = 0;
 
   out[0]='\0';
-  if (!buf->bytes_avail) fill_buffer(buf, fd);
   if (!buf->bytes_avail) {
-    return(0);
+    result = fill_buffer(buf, fd);
+    if (result < 0)
+      return(NULL);
+  }
+  if (!buf->bytes_avail) {
+    return(NULL);
   }
 
   while (((newline_ind = has_newline(buf)) == -1) && (out_space_remaining > buf->bytes_avail)) {
@@ -124,7 +138,9 @@ char *bz2gets(BZFILE *fd, bz2buffer_t *buf, char *out, int out_size) {
     out[out_ind] = '\0';
     out_space_remaining -= buf->bytes_avail;
     buf->nextout = buf->nextin = buf->bytes_avail = 0;
-    fill_buffer(buf, fd);
+    result = fill_buffer(buf, fd);
+    if (result < 0)
+      return(NULL);
     if (!buf->bytes_avail) {
       out[out_ind] = '\0';
       if (out_ind) return(out);
@@ -160,7 +176,10 @@ char *bz2gets(BZFILE *fd, bz2buffer_t *buf, char *out, int out_size) {
 int bz2_open_i(InputHandler *ih) {
   if (ih->path != NULL) {
     ih->fin = fopen(ih->path, "rb");
-    /* fixme check if successfull */
+    if (!ih->fin) {
+      fprintf(stderr, "failed to open input file for read\n");
+      exit(-1);
+    }
   }
   ih->bzstream = BZ2_bzReadOpen(&(ih->bzerror), ih->fin, ih->bz_verbosity, ih->bz_small,
                                 ih->bz_unused, ih->bz_nUnused);
@@ -191,10 +210,21 @@ int bz2_close_i(InputHandler *ih) {
   return(0);
 }
 
+int bz2_eof_i(InputHandler *ih) {
+  if (feof(ih->fin) && isempty(ih->bz_buffer))
+    return(1);
+  return(0);
+}
+
 int gz_open_i(InputHandler *ih) {
   if (ih->path != NULL) {
     ih->gzstream = gzopen(ih->path, "rb");
     gzbuffer(ih->gzstream, ih->gz_bufsize);
+  }
+  if (!ih->gzstream) {
+    fprintf(stderr, "error trying to open %s for decompression\n",
+            ih->path);
+    exit(-1);
   }
   return(0);
 }
@@ -209,9 +239,20 @@ int gz_close_i(InputHandler *ih) {
   return(0);
 }
 
+int gz_eof_i(InputHandler *ih) {
+  if (gzeof(ih->gzstream))
+    return(1);
+  return(0);
+}
+
 int txt_open_i(InputHandler *ih) {
-  if (ih->path != NULL)
+  if (ih->path != NULL) {
     ih->fin = fopen(ih->path, "r");
+    if (!ih->fin) {
+      fprintf(stderr, "failed to open %s for decompression\n", ih->path);
+      exit(-1);
+    }
+  }
   return(0);
 }
 
@@ -225,13 +266,23 @@ int txt_close_i(InputHandler *ih) {
   return(0);
 }
 
+int txt_eof_i(InputHandler *ih) {
+  if (feof(ih->fin))
+	   return(1);
+  return(0);
+}
+
 OutputHandler *outputhandler_init(char *path) {
   OutputHandler *oh = NULL;
+  char *dotPosition = NULL;
+
   oh = (OutputHandler *)malloc(sizeof(OutputHandler));
   if (oh == NULL) {
     fprintf(stderr, "failed to allocate output handler\n");
     exit(1);
   }
+  oh->open = NULL;
+
   oh->path = path;
   oh->fout = NULL;
   oh->bzstream = NULL;
@@ -242,6 +293,21 @@ OutputHandler *outputhandler_init(char *path) {
 
   oh->gzstream = NULL;
   oh->gz_bufsize = 65536;
+
+  oh->bytes_in_low = 0;
+  oh->bytes_in_hi = 0;
+  oh->bytes_out_low = 0;
+  oh->bytes_out_hi = 0;
+
+  oh->bytes_in_low_cumul = 0;
+  oh->bytes_in_hi_cumul = 0;
+  oh->bytes_out_low_cumul = 0;
+  oh->bytes_out_hi_cumul = 0;
+
+  oh->offset_gz = 0;
+  oh->offset_txt = 0;
+
+  oh->closed = 1;
 
   if (path == NULL) {
     oh->fout = stdout;
@@ -262,13 +328,27 @@ OutputHandler *outputhandler_init(char *path) {
     oh->close = gz_close_o;
   }
   else {
-    /*
-    only for DEBUG perf testing
+    dotPosition = strrchr(path, '.');
+    if (dotPosition != NULL) {
+      *dotPosition = '\0';
+      if (strlen(path) > 4 && !strcmp(path+(strlen(path)-4),".bz2")) {
+        /* filename ends in .bz2.something */
+	oh->open = bz2_open_o;
+	oh->write = bz2_write_o;
+	oh->close = bz2_close_o;
+      }
+      else if (strlen(path) > 3 && !strcmp(path+(strlen(path)-3),".gz")) {
+        /* filename ends in .gz.something */
+	oh->open = gz_open_o;
+	oh->write = gz_write_o;
+	oh->close = gz_close_o;
+      }
+      *dotPosition = '.';
+    }
+  }
 
-    oh->open = gz_open_o;
-    oh->write = gz_write_o;
-    oh->close = gz_close_o;
-    */
+  if (oh->open == NULL) {
+    /* not set in stanzas above */
     oh->open = txt_open_o;
     oh->write = txt_write_o;
     oh->close = txt_close_o;
@@ -285,7 +365,54 @@ int bz2_open_o(OutputHandler *oh) {
             oh->bzerror, oh->path);
     exit(-1);
   }
+  oh->closed = 0;
   return(1);
+}
+
+int bz2_open_a(OutputHandler *oh) {
+  if (oh->path != NULL)
+    oh->fout = fopen(oh->path, "a");
+
+  oh->bzstream = BZ2_bzWriteOpen(&(oh->bzerror), oh->fout, oh->bz_blocksize,
+                                 oh->bz_verbosity, oh->bz_workfactor);
+  if (oh->bzerror != BZ_OK) {
+    fprintf(stderr, "error %d trying to open %s for compression\n",
+            oh->bzerror, oh->path);
+    exit(-1);
+  }
+  oh->closed = 0;
+  return(1);
+}
+
+void outputhandler_appendmode(OutputHandler *oh) {
+  char *dotPosition = NULL;
+
+  oh->open = NULL;
+
+  if (strlen(oh->path) > 4 && !strcmp(oh->path + strlen(oh->path) - 4, ".bz2"))
+    oh->open = bz2_open_a;
+  else if  (strlen(oh->path) > 3 && !strcmp(oh->path + strlen(oh->path) - 3, ".gz"))
+    oh->open = gz_open_a;
+  else {
+    dotPosition = strrchr(oh->path, '.');
+    if (dotPosition != NULL) {
+      *dotPosition = '\0';
+      if (strlen(oh->path) > 4 && !strcmp(oh->path+(strlen(oh->path)-4),".bz2")) {
+        /* filename ends in .bz2.something */
+	oh->open = bz2_open_a;
+      }
+      else if (strlen(oh->path) > 3 && !strcmp(oh->path+(strlen(oh->path)-3),".gz")) {
+        /* filename ends in .gz.something */
+	oh->open = gz_open_a;
+      }
+      *dotPosition = '.';
+    }
+  }
+
+  if (oh->open == NULL) {
+    /* not set in stanzas above */
+    oh->open = txt_open_a;
+  }
 }
 
 int bz2_write_o(OutputHandler *oh, char *buffer, int bytecount) {
@@ -299,17 +426,31 @@ int bz2_write_o(OutputHandler *oh, char *buffer, int bytecount) {
 }
 
 int bz2_close_o(OutputHandler *oh) {
-  unsigned int bytes_in;
-  unsigned int bytes_out;
+  BZ2_bzWriteClose64(&(oh->bzerror), oh->bzstream, 0,
+		     &(oh->bytes_in_low), &(oh->bytes_in_hi),
+		     &(oh->bytes_out_low), &(oh->bytes_out_hi));
+  oh->bytes_in_low_cumul += oh->bytes_in_low;
+  oh->bytes_in_hi_cumul += oh->bytes_in_hi;
+  oh->bytes_out_low_cumul += oh->bytes_out_low;
+  oh->bytes_out_hi_cumul += oh->bytes_out_hi;
 
-  BZ2_bzWriteClose(&(oh->bzerror), oh->bzstream, 0, &bytes_in, &bytes_out);
-  fclose(oh->fout);
+  if (oh->fout != stdout)
+    fclose(oh->fout);
+  oh->closed = 1;
   return(0);
 }
 
 int gz_open_o(OutputHandler *oh) {
   oh->gzstream = gzopen(oh->path, "w");
   gzbuffer(oh->gzstream, oh->gz_bufsize);
+  oh->closed = 0;
+  return(0);
+}
+
+int gz_open_a(OutputHandler *oh) {
+  oh->gzstream = gzopen(oh->path, "a");
+  gzbuffer(oh->gzstream, oh->gz_bufsize);
+  oh->closed = 0;
   return(0);
 }
 
@@ -318,20 +459,44 @@ int gz_write_o(OutputHandler *oh, char *buffer, int bytecount) {
 }
 
 int gz_close_o(OutputHandler *oh) {
+  gzflush(oh->gzstream, Z_FINISH);
+  oh->offset_gz = gzoffset(oh->gzstream);
   gzclose(oh->gzstream);
+  oh->closed = 1;
   return(0);
 }
 
 int txt_open_o(OutputHandler *oh) {
   oh->fout = fopen(oh->path, "w");
+  oh->closed = 0;
+  return(0);
+}
+
+int txt_open_a(OutputHandler *oh) {
+  oh->fout = fopen(oh->path, "a");
+  oh->closed = 0;
   return(0);
 }
 
 int txt_write_o(OutputHandler *oh, char *buffer, int bytecount) {
-  return(fwrite(buffer, 1, bytecount, oh->fout));
+ size_t results;
+
+  results = fwrite(buffer, 1, bytecount, oh->fout);
+  oh->offset_txt += results;
+  return(0);
 }
 
 int txt_close_o(OutputHandler *oh) {
   fclose(oh->fout);
+  oh->closed = 1;
   return(0);
+}
+
+off_t outputhandler_get_offset(OutputHandler *oh) {
+  if (oh->gzstream)
+    return oh->offset_gz;
+  else if (oh->bzstream)
+    return ((off_t)oh->bytes_out_low_cumul | ((off_t)oh->bytes_out_hi_cumul << 32));
+  else
+    return oh->offset_txt;
 }
