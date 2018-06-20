@@ -69,8 +69,8 @@ getlastidinbz2xml: $(OBJSBZ) mwbzlib.o getlastidinbz2xml.o
 recompressxml: $(OBJSBZ) recompressxml.o
 	$(CC) $(LDFLAGS) -o recompressxml recompressxml.o $(LIBS)
 
-writeuptopageid: $(OBJSBZ) writeuptopageid.o
-	$(CC) $(LDFLAGS) -o writeuptopageid writeuptopageid.o $(LIBS) -lz
+writeuptopageid: $(OBJSBZ) iohandlers.o writeuptopageid.o
+	$(CC) $(LDFLAGS) -o writeuptopageid iohandlers.o writeuptopageid.o $(LIBS) -lz
 
 %.o: %.c
 	$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
