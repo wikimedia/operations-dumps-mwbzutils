@@ -54,6 +54,8 @@ void usage(char *message) {
 "                         the file specified. If the filename ends in .bz2 or .gz, it will\n"
 "                         use the appropriate compression. IF NOT it will be written\n"
 "                         uncompressed, which probably defeats the point of this program.\n"
+"  -H  --noheader:        don't write the mediawiki header\n"
+"  -F  --nofooter:        don't write the mediawiki footer\n"
 "  -v, --verbose:         Write lots of debugging output to stderr.  This option can be used\n"
 "                         multiple times to increase verbosity.\n"
 "  -h, --help             Show this help message\n"
@@ -137,9 +139,17 @@ int hasId(char *buf) {
   return(id);
 }
 
+int hasFooter(char *buf) {
+  char *mediawikiCloseTag = "</mediawiki>";
+  while (*buf == ' ') buf++;
+
+  if (!strncmp(buf,mediawikiCloseTag,12)) return 1;
+  else return 0;
+}
+
 int endsXmlBlock(char *buf, int header) {
   char *pageCloseTag = "</page>\n";
-  char *mediawikiCloseTag = "</mediawiki>\n";
+  char *mediawikiCloseTag = "</mediawiki>";
   char *siteinfoCloseTag = "</siteinfo>\n";
 
   while (*buf == ' ') buf++;
@@ -149,14 +159,15 @@ int endsXmlBlock(char *buf, int header) {
     if (!strcmp(buf,siteinfoCloseTag)) return 1;
     else return 0;
   }
-
   /* normal check for end of page, end of content */
-  if (!strcmp(buf,pageCloseTag) || !strcmp(buf,mediawikiCloseTag)) return 1;
+  /* mw close tag does not necessarily have a newline after it */
+  if (!strcmp(buf,pageCloseTag) || !strncmp(buf,mediawikiCloseTag,12)) return 1;
   else return 0;
 }
 
 void writeCompressedXmlBlock(int header, int count, off_t *fileOffset, InputHandler *ihandler,
-			     OutputHandler *ohandler, OutputHandler *index_ohandler,int verbose)
+			     OutputHandler *ohandler, OutputHandler *index_ohandler,
+			     int noheader, int nofooter, int verbose)
  {
   int wroteSomething = 0;
   int blocksDone = 0;
@@ -220,8 +231,37 @@ void writeCompressedXmlBlock(int header, int count, off_t *fileOffset, InputHand
 	}
       }
     }
-    if (inBuf[0])
-      ohandler->write(ohandler, inBuf, strlen(inBuf));
+    if (inBuf[0]) {
+      if (nofooter && hasFooter(inBuf)) {
+	/* if we have a footer and we're supposed to skip it, do so */
+	if (verbose)
+	  fprintf(stderr, "skipping footer for output\n");
+      }
+      else if (noheader && header) {
+	/* if we have a header and we're supposed to skip it, do so */
+	if (verbose)
+	  fprintf(stderr, "skipping header for output\n");
+      }
+      else {
+	if (hasFooter(inBuf)) {
+	  /* close stream, start a new one just for the footer */
+	  if (ohandler->close)
+	    ohandler->close(ohandler);
+	  if (ohandler->path != NULL) {
+	    outputhandler_appendmode(ohandler);
+	    ohandler->open(ohandler);
+	  }
+	  ohandler->write(ohandler, inBuf, strlen(inBuf));
+	  if (ohandler->close)
+	    ohandler->close(ohandler);
+	  *fileOffset = outputhandler_get_offset(ohandler);
+	  return;
+	}
+	else
+	  ohandler->write(ohandler, inBuf, strlen(inBuf));
+      }
+    }
+
     if (endsXmlBlock(inBuf, header)) {
       /* special case: doing the siteinfo stuff at the beginning */
       inBuf[0] = '\0';
@@ -229,6 +269,8 @@ void writeCompressedXmlBlock(int header, int count, off_t *fileOffset, InputHand
 	fprintf(stderr,"end of header, page, or mw found\n");
       }
       if (header) {
+	if (ohandler->close)
+	  ohandler->close(ohandler);
 	*fileOffset = outputhandler_get_offset(ohandler);
 	return;
       }
@@ -269,6 +311,8 @@ int main(int argc, char **argv) {
     {"outpath", 1, 0, 'o'},
     {"help", 0, 0, 'h'},
     {"pagesperstream", 1, 0, 'p'},
+    {"noheader", 0, 0, 'H'},
+    {"nofooter", 0, 0, 'F'},
     {"verbose", 0, 0, 'v'},
     {"version", 0, 0, 'V'},
     {NULL, 0, NULL, 0}
@@ -277,6 +321,8 @@ int main(int argc, char **argv) {
   int count = 0;
   char *indexFilename = NULL;
   char *inpath = NULL;
+  int noheader = 0;
+  int nofooter = 0;
   int verbose = 0;
   FILE *indexfd = NULL;
   char *outpath = NULL;
@@ -285,7 +331,7 @@ int main(int argc, char **argv) {
   OutputHandler *index_ohandler = NULL;
 
   while (1) {
-    optc=getopt_long_only(argc,argv,"p:b:i:o:v", optvalues, &optindex);
+    optc=getopt_long_only(argc,argv,"p:b:i:o:HFvV", optvalues, &optindex);
     if (optc=='b') {
       indexFilename = optarg;
     }
@@ -301,6 +347,10 @@ int main(int argc, char **argv) {
       if (!(isdigit(optarg[0]))) usage(NULL);
       count=atoi(optarg);
     }
+    else if (optc=='H')
+      noheader++;
+    else if (optc=='F')
+      nofooter++;
     else if (optc=='v')
       verbose++;
     else if (optc=='V')
@@ -337,14 +387,14 @@ int main(int argc, char **argv) {
 
   offset = (off_t)0;
   /* deal with the XML header */
-  writeCompressedXmlBlock(1,count,&offset,ihandler,ohandler,index_ohandler,verbose);
+  writeCompressedXmlBlock(1,count,&offset,ihandler,ohandler,index_ohandler,noheader,nofooter,verbose);
 
   if (verbose) {
       if (ihandler->eof(ihandler))
           fprintf(stderr, "EOF reached for input file\n");
   }
   while (!ihandler->eof(ihandler)) {
-    writeCompressedXmlBlock(0,count,&offset,ihandler,ohandler,index_ohandler,verbose);
+    writeCompressedXmlBlock(0,count,&offset,ihandler,ohandler,index_ohandler,noheader,nofooter,verbose);
     if (verbose) {
         if (ihandler->eof(ihandler))
             fprintf(stderr, "EOF reached for input file\n");
