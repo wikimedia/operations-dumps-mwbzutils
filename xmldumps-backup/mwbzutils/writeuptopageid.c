@@ -39,6 +39,8 @@ void usage(char *message) {
 "                   in ascending order, and that there is no overlap in the ranges.\n"
 "                   You can think of this as a lazy person's splitxml.\n"
 "Flags:\n\n"
+"  -H  --noheader   don't write mw/siteinfo header\n"
+"  -F  --nofooter   don't write mediawiki footer\n"
 "  -h, --help       Show this help message\n"
 "  -v, --version    Display the version of this program and exit\n\n"
 "Arguments:\n\n"
@@ -158,7 +160,9 @@ void clearMemoryIfNeeded(char *mem, States state) {
 }
 
 /* returns 1 on success, 0 on error */
-int writeIfNeeded(char *line, States state, OutputHandler *ohandler) {
+int writeIfNeeded(char *line, States state, int noheader, OutputHandler *ohandler) {
+  if ((state == StartHeader || state == EndHeader) && noheader)
+    return(1);
   if (state == StartHeader || state == EndHeader || state == WriteMem || state == Write || state == EndPage) {
     return(ohandler->write(ohandler, line,strlen(line)));
   }
@@ -198,7 +202,8 @@ int writeHeader(char *header, OutputHandler *ohandler) {
   return(ohandler->write(ohandler, header, strlen(header)));
 }
 
-void write_output(char *inpath, int startPageID, int endPageID) {
+void write_output(char *inpath, int startPageID, int endPageID,
+		  int noheader, int nofooter) {
   char *text;
   char line[4097];
   /* order of magnitude of 2K lines of 80 chrs each,
@@ -230,7 +235,7 @@ void write_output(char *inpath, int startPageID, int endPageID) {
       exit(-1);
     }
     clearMemoryIfNeeded(mem, state);
-    if (!writeIfNeeded(line, state, ohandler)) {
+    if (!writeIfNeeded(line, state, noheader, ohandler)) {
       fprintf(stderr, "failed to write text, bailing\n");
       exit(-1);
     }
@@ -239,7 +244,8 @@ void write_output(char *inpath, int startPageID, int endPageID) {
       break;
     }
   }
-  ohandler->write(ohandler, "</mediawiki>\n", 13);
+  if (!nofooter)
+    ohandler->write(ohandler, "</mediawiki>\n", 13);
 }
 
 typedef struct {
@@ -360,7 +366,8 @@ char *path_join(char *dir, char *filename) {
   return(path);
 }
 
-void write_output_files(char *inpath, char *odir, char *fspecs) {
+void write_output_files(char *inpath, char *odir, char *fspecs,
+			int noheader, int nofooter) {
   char *text;
   char line[4097];
   /* order of magnitude of 2K lines of 80 chrs each,
@@ -396,7 +403,7 @@ void write_output_files(char *inpath, char *odir, char *fspecs) {
       /* this line here is busted somehow. woops */
       while (ihandler->fgets(ihandler, line, sizeof(line)-1) != NULL) {
         if (filestart) {
-          if (mwheader[0] && !writeHeader(mwheader, ohandler)) {
+          if (!noheader && mwheader[0] && !writeHeader(mwheader, ohandler)) {
             fprintf(stderr, "failed to write saved header, bailing\n");
             exit(-1);
           }
@@ -436,7 +443,7 @@ void write_output_files(char *inpath, char *odir, char *fspecs) {
           exit(-1);
         }
         clearMemoryIfNeeded(mem, state);
-        if (!writeIfNeeded(line, state, ohandler)) {
+        if (!writeIfNeeded(line, state, noheader, ohandler)) {
           fprintf(stderr, "failed to write text, bailing\n");
           exit(-1);
         }
@@ -445,7 +452,8 @@ void write_output_files(char *inpath, char *odir, char *fspecs) {
           break;
         }
       }
-      ohandler->write(ohandler, "</mediawiki>\n", 13);
+      if (!nofooter)
+	ohandler->write(ohandler, "</mediawiki>\n", 13);
       ohandler->close(ohandler);
       free(ofilepath);
       fspec_obj = fspeclist[count++];
@@ -457,6 +465,8 @@ void write_output_files(char *inpath, char *odir, char *fspecs) {
 int main(int argc,char **argv) {
   long int startPageID = 0;
   long int endPageID = 0;
+  int noheader = 0;
+  int nofooter = 0;
   char *nonNumeric = 0;
   char *inpath = NULL;
   char *odir = NULL;
@@ -469,13 +479,15 @@ int main(int argc,char **argv) {
     {"inpath", 1, 0, 'i'},
     {"odir", 1, 0, 'o'},
     {"fspecs", 1, 0, 'f'},
+    {"nofooter", 0, 0, 'F'},
+    {"noheader", 0, 0, 'H'},
     {"help", 0, 0, 'h'},
     {"version", 0, 0, 'v'},
     {NULL, 0, NULL, 0}
   };
 
   while (1) {
-    optc = getopt_long_only(argc,argv,"i:o:f:hv", optvalues, &optindex);
+    optc = getopt_long_only(argc,argv,"i:o:f:FHhv", optvalues, &optindex);
     if (optc == 'v')
       show_version(VERSION);
     else if (optc == 'i')
@@ -484,6 +496,10 @@ int main(int argc,char **argv) {
       odir = optarg;
     else if (optc == 'f')
       fspecs = optarg;
+    else if (optc == 'F')
+      nofooter = 1;
+    else if (optc == 'H')
+      noheader = 1;
     else if (optc == 'h')
       usage(NULL);
     else if (optc == 'v')
@@ -504,7 +520,7 @@ int main(int argc,char **argv) {
     usage("The fspecs option requires the odir option.\n");
   }
   else if (odir != NULL && fspecs != NULL) {
-    write_output_files(inpath, odir, fspecs);
+    write_output_files(inpath, odir, fspecs, noheader, nofooter);
     exit(0);
   }
 
@@ -532,6 +548,6 @@ int main(int argc,char **argv) {
     }
   }
 
-  write_output(inpath, startPageID, endPageID);
+  write_output(inpath, startPageID, endPageID, noheader, nofooter);
   exit(0);
 }
