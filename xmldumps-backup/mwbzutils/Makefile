@@ -13,10 +13,10 @@
 # in the file LICENSE_BZ.
 #
 # All other files are released under the GPL, copyright (C) Ariel T. Glenn
-# 2010-2013: see the file COPYING for details.
+# 2010-2019: see the file COPYING for details.
 # ------------------------------------------------------------------
 
-VERSION        = "0.0.8"
+VERSION        = "0.0.9"
 CC            ?= gcc
 BIGFILES       = -D_FILE_OFFSET_BITS=64
 CPPFLAGS      += $(BIGFILES) -DVERSION=\"$(VERSION)\"

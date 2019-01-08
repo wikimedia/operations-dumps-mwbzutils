@@ -1,0 +1,9 @@
+Jan 1 2019
+
+recompressxml now compresses output file based on the name; if it writes
+to stdout, then no compression will be done. This is a breaking change!
+
+If you want your code to remain compatible, you may either remain
+with version 0.0.8 or add a pipeline to caller thus:
+
+recompressxml (args) | bzip2 > outputfile.
