@@ -12,7 +12,6 @@
 #include "bzlib.h"
 #include "mwbzutils.h"
 
-
 /* return n ones either at left or right end */
 int bit_mask(int numbits, int end) {
   if (end == MASKRIGHT) {
@@ -128,12 +127,12 @@ int check_buffer_for_bz2_block_marker(bz_info_t *bfile) {
   int result, i;
 
   /* dump_bfile_info(bfile); */
-  result = bytes_compare(bfile->marker[0],bfile->marker_buffer+1,6,0);
+  result = bytes_compare(bfile->marker[0],bfile->marker_buffer_ptr+1,6,0);
   if (!result) {
     return(0);
   }
   for (i=1; i<8; i++) {
-    result = bytes_compare(bfile->marker[i],bfile->marker_buffer,7,i);
+    result = bytes_compare(bfile->marker[i],bfile->marker_buffer_ptr,7,i);
     if (!result) {
       return(i);
     }
@@ -144,14 +143,25 @@ int check_buffer_for_bz2_block_marker(bz_info_t *bfile) {
 /* return: 1 if found, 0 if not, -1 on error */
 int find_next_bz2_block_marker(int fin, bz_info_t *bfile, int direction) {
   off_t seekresult;
-  int res;
+  /* int res; */
+  ssize_t bytes_read = 0;
+  ssize_t bytes_avail = 0;
+  ssize_t bytes_used = 0;
 
   bfile->bits_shifted = -1;
-  res = read(fin, bfile->marker_buffer, 7);
-  if (res == -1) {
+  bytes_read = read(fin, bfile->marker_buffer, sizeof(bfile->marker_buffer));
+  if (bytes_read == -1) {
     fprintf(stderr,"read of file failed\n");
     return(-1);
   }
+  if (bytes_read < 7)
+    return(-1);
+  bytes_avail = bytes_read;
+  bytes_used = 0;
+  if (direction == FORWARD)
+    bfile->marker_buffer_ptr = bfile->marker_buffer;
+  else
+    bfile->marker_buffer_ptr = bfile->marker_buffer + bytes_read - 7;
   /* must be after 4 byte file header, and we add a leftmost byte to the buffer
      of data read in case some bits have been shifted into it */
   while (bfile->position <= bfile->file_size - 6 && bfile->position >= 0 && bfile->bits_shifted < 0) {
@@ -159,18 +169,53 @@ int find_next_bz2_block_marker(int fin, bz_info_t *bfile, int direction) {
     if (bfile->bits_shifted < 0) {
       if (direction == FORWARD) {
 	bfile->position++;
+	bytes_used++;
+	bytes_avail--;
+	if (bytes_avail < 7) {
+	  /* copy the leftovers to the front of the buffer, fill in as much of the remainder as we can,
+	   reset the pointer to the beginning of the buffer for new checks */
+	  memmove(bfile->marker_buffer, bfile->marker_buffer + sizeof(bfile->marker_buffer) - bytes_avail, bytes_avail);
+	  bytes_read = read(fin, bfile->marker_buffer + bytes_avail, sizeof(bfile->marker_buffer) - bytes_avail);
+	  bytes_used = 0;
+	  if (bytes_read  < 1)
+	    return(-1);
+	  bytes_avail += bytes_read;
+	  if (bytes_avail < 7)
+	    return(-1);
+	  bfile->marker_buffer_ptr = bfile->marker_buffer;
+	}
+	else {
+	  bfile->marker_buffer_ptr += 1;
+	}
       }
       else {
+	/* direction is backwards */
 	bfile->position--;
-      }
-      seekresult = lseek(fin, bfile->position, SEEK_SET);
-      if (seekresult == (off_t)-1) {
-	fprintf(stderr,"lseek of file to %"PRId64" failed (2)\n",bfile->position);
-	return(-1);
-      }
-      res = read(fin, bfile->marker_buffer, 7);
-      if (res < 7) {
-	return(-1);
+	bfile->marker_buffer_ptr -= 1;
+	if (bfile->position < 0) {
+	  fprintf(stderr,"No block found in file\n");
+	  return(-1);
+	}
+	if (bfile->marker_buffer_ptr < bfile->marker_buffer) {
+	  /* keep those bytes around in case they have part of the marker */
+	  memmove(bfile->marker_buffer + sizeof(bfile->marker_buffer) - 7, bfile->marker_buffer, 7);
+	  bfile->position -= sizeof(bfile->marker_buffer) - 7;
+	  if (bfile->position < 0)
+	    bfile->position = 0;
+	  seekresult = lseek(fin, bfile->position, SEEK_SET);
+	  if (seekresult == (off_t)-1) {
+	    fprintf(stderr,"lseek of file to %"PRId64" failed (2)\n",bfile->position);
+	    return(-1);
+	  }
+	  bytes_read = read(fin, bfile->marker_buffer, sizeof(bfile->marker_buffer) - 7);
+	  if (bytes_read != sizeof(bfile->marker_buffer) - 7) {
+	    /* not enough bytes left for us to read. move those 7 bytes to the end of the ones we read.
+	       should only happen near the beginning of the file. */
+	    memmove(bfile->marker_buffer + bytes_read, bfile->marker_buffer + sizeof(bfile->marker_buffer) - 7, 7);
+	  }
+	  bfile->marker_buffer_ptr = bfile->marker_buffer + bytes_read;
+	  bfile->position += bytes_read;
+	}
       }
     }
     else {
@@ -232,15 +277,18 @@ int decompress_header(int fin, bz_info_t *bfile) {
   int res;
   off_t seekresult;
 
-  seekresult = lseek(fin,(off_t)0,SEEK_SET);
-  if (seekresult == (off_t)-1) {
-    fprintf(stderr,"lseek of file to 0 failed (3)\n");
-    return(-1);
-  }
-  bfile->bytes_read = read(fin, bfile->header_buffer, 4);
-  if (bfile->bytes_read < 4) {
-    fprintf(stderr,"failed to read 4 bytes of header\n");
-    return(-1);
+  if (!(bfile->header_read)) {
+    seekresult = lseek(fin,(off_t)0,SEEK_SET);
+    if (seekresult == (off_t)-1) {
+      fprintf(stderr,"lseek of file to 0 failed (3)\n");
+      return(-1);
+    }
+    bfile->bytes_read = read(fin, bfile->header_buffer, 4);
+    if (bfile->bytes_read < 4) {
+      fprintf(stderr,"failed to read 4 bytes of header\n");
+      return(-1);
+    }
+    bfile->header_read = 1;
   }
   bfile->strm.next_in = (char *)bfile->header_buffer;
   bfile->strm.avail_in = 4;
@@ -315,6 +363,7 @@ int init_bz2_file(bz_info_t *bfile, int fin, int direction) {
   bfile->bytes_read = 0;
   bfile->bytes_written = 0;
   bfile->eof = 0;
+  bfile->header_read = 0;
 
   bfile->initialized++;
 
@@ -623,7 +672,8 @@ void clear_buffer(unsigned char *buf, int length) {
   look for the first bz2 block in the file before/after specified offset
   it tests that the block is valid by doing partial decompression.
   this function will update the bfile structure:
-  bfile->position will contain the current position of the file (? will it?)
+  bfile->position will contain the current position of the file and the fle
+    cursor will be set via lseek to the start of the found block, if do_seek is nonzero
   bfile->bits_shifted will contain the number of bits that the block is rightshifted
   bfile->block_start will contain the offset from start of file to the block
   (this value will always be positive, the value given in the argument "direction"
@@ -634,7 +684,8 @@ void clear_buffer(unsigned char *buf, int length) {
     0 if no marker
     -1 on error
 */
-off_t find_first_bz2_block_from_offset(bz_info_t *bfile, int fin, off_t position, int direction) {
+off_t find_first_bz2_block_from_offset(bz_info_t *bfile, int fin, off_t position,
+				       int direction, off_t filesize, int do_seek) {
   off_t seekresult;
   int res;
   unsigned char buffout[5000];
@@ -651,7 +702,10 @@ off_t find_first_bz2_block_from_offset(bz_info_t *bfile, int fin, off_t position
   bfile->bufout = buffout;
   bfile->bufout_size = 5000;
 
-  bfile->file_size = get_file_size(fin);
+  if (filesize)
+    bfile->file_size = filesize;
+  else
+    bfile->file_size = get_file_size(fin);
 
   while (bfile->bits_shifted < 0) {
     if (bfile->position > bfile->file_size) {
@@ -662,7 +716,7 @@ off_t find_first_bz2_block_from_offset(bz_info_t *bfile, int fin, off_t position
       fprintf(stderr,"lseek of file to %"PRId64" failed (7)\n",bfile->position);
       return(-1);
     }
-    res = find_next_bz2_block_marker(fin, bfile,direction);
+    res = find_next_bz2_block_marker(fin, bfile, direction);
     if (res == 1) {
       init_decompress(bfile);
       decompress_header(fin, bfile);
@@ -680,18 +734,27 @@ off_t find_first_bz2_block_from_offset(bz_info_t *bfile, int fin, off_t position
 	bfile->bytes_read = 0;
 	bfile->bytes_written = 0;
 	bfile->eof = 0;
-	/* leave the file at the right position */
-	seekresult = lseek(fin, bfile->block_start, SEEK_SET);
-	if (seekresult == (off_t)-1) {
-	  fprintf(stderr,"lseek of file to %"PRId64" failed (8)\n",bfile->position);
-	  return(-1);
+	if (do_seek) {
+	  /* leave the file at the right position */
+	  seekresult = lseek(fin, bfile->block_start, SEEK_SET);
+	  if (seekresult == (off_t)-1) {
+	    fprintf(stderr,"lseek of file to %"PRId64" failed (8)\n",bfile->position);
+	    return(-1);
+	  }
+	  bfile->position = seekresult;
+	  return(bfile->position);
 	}
-	bfile->position = seekresult;
-	return(bfile->position);
+	else
+	  return(bfile->block_start);
       }
-      /* right bytes, but there by chance, skip and try again */
+      /* right bytes, but there by chance, or we are in a multistream
+	 file, skip and try again */
       else {
-	bfile->position+=(off_t)6;
+	if (direction == FORWARD)
+	  bfile->position+=(off_t)6;
+	else {
+	  bfile->position-=(off_t)1;
+	}
 	bfile->bits_shifted = -1;
 	bfile->block_start = (off_t)-1;
       }

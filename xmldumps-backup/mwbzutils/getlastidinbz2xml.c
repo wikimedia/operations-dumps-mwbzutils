@@ -268,6 +268,7 @@ int main(int argc, char **argv) {
   bfile.position -=(off_t)6; /* size of marker */
   bfile.initialized = 0;
   bfile.bytes_read = 0;
+  bfile.header_read = 0;
 
   /* start at end of file */
   block_end = bfile.position;
@@ -280,7 +281,7 @@ int main(int argc, char **argv) {
     bfile.initialized = 0;
     init_decompress(&bfile);
 
-    block_start = find_first_bz2_block_from_offset(&bfile, fin, block_end, BACKWARD);
+    block_start = find_first_bz2_block_from_offset(&bfile, fin, block_end, BACKWARD, bfile.file_size, 1);
 
     if (block_start <= (off_t) 0) giveup(fin);
     BZ2_bzDecompressEnd (&(bfile.strm));

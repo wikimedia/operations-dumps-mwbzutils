@@ -91,6 +91,13 @@ recompresszml         - Reads an xml stream of pages and writes multiple bz2 com
 revsperpage           - Display information about the revisions (count, length, max length)
                         for each page read from a MediaWiki XML input stream
 
+showcrcs              - Given a bzip2 compressed file, extracts the byte offsets and crcs
+                        for each block and for the entire file, and displays them; it can
+			also try to compute the file crc from the block crcs and display that.
+			Blocks are found by looking for the start of block marker, but
+			are not decompressed to verify that they are valid. There is a small
+			possibility that a marker could exist naturally in the middle of a block.
+
 Library routines:
 
 mwbz2lib.c            - various utility functions (bitmasks, shifting and comparing bytes,

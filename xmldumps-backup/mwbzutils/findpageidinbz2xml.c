@@ -324,6 +324,7 @@ int get_first_page_id_after_offset(int fin, off_t position, id_info_t *pinfo, in
 
   bfile.initialized = 0;
   bfile.marker = NULL;
+  bfile.header_read = 0;
 
   regcomp(&compiled_page, page, REG_EXTENDED);
   regcomp(&compiled_page_id, page_id, REG_EXTENDED);
@@ -343,7 +344,7 @@ int get_first_page_id_after_offset(int fin, off_t position, id_info_t *pinfo, in
 
   bfile.bytes_read = 0;
 
-  if (find_first_bz2_block_from_offset(&bfile, fin, position, FORWARD) <= (off_t)0) {
+  if (find_first_bz2_block_from_offset(&bfile, fin, position, FORWARD, (off_t)0, 1) <= (off_t)0) {
     if (verbose) fprintf(stderr,"failed to find block in bz2file after offset %"PRId64" (1)\n", position);
     return(-1);
   }

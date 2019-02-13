@@ -25,7 +25,7 @@ CFLAGS        ?= -Wall -Werror -O2
 build: appendbz2 checkforbz2footer dumpbz2filefromoffset \
 	dumplastbz2block findpageidinbz2xml \
 	recompressxml writeuptopageid compressedmanpages \
-	getlastidinbz2xml revsperpage
+	getlastidinbz2xml revsperpage showcrcs
 
 
 NAME_APPENDBZ2               = "Given combined crc of prev content, write appendable bz2 output from stdin"
@@ -36,6 +36,7 @@ NAME_FINDPAGEIDINBZ2XML      = "Display offset of bz2 block for given page id in
 NAME_FINDLASTPAGEIDINBZ2XML  = "Display last page id bzip2 MediaWiki XML file"
 NAME_RECOMPRESSXML           = "Bz2 compress MediaWiki XML input in batches of pages"
 NAME_REVSPERPAGE             = "Display info about revisions per page from MediaWiki XML input"
+NAME_SHOWCRCS                = "Show crcs and offsets of blocks in bz2-compressed file"
 NAME_WRITEUPTOPAGEID         = "Write range of page content from MediaWiki XML input"
 
 PREFIX        ?= "/usr/local"
@@ -77,6 +78,9 @@ recompressxml: $(OBJSBZ) iohandlers.o recompressxml.o
 revsperpage: revsperpage.o
 	$(CC) $(LDFLAGS) -o revsperpage revsperpage.o
 
+showcrcs: $(OBJSBZ) iohandlers.o showcrcs.o
+	$(CC) $(LDFLAGS) -o showcrcs showcrcs.o $(OBJS) $(LIBS)
+
 writeuptopageid: $(OBJSBZ) iohandlers.o writeuptopageid.o
 	$(CC) $(LDFLAGS) -o writeuptopageid iohandlers.o writeuptopageid.o $(LIBS) -lz
 
@@ -86,7 +90,7 @@ writeuptopageid: $(OBJSBZ) iohandlers.o writeuptopageid.o
 compressedmanpages: docs/appendbz2.1.gz docs/dumplastbz2block.1.gz \
 	docs/findpageidinbz2xml.1.gz \
 	docs/checkforbz2footer.1.gz docs/dumpbz2filefromoffset.1.gz \
-	docs/recompressxml.1.gz docs/revsperpage.1.gz \
+	docs/recompressxml.1.gz docs/revsperpage.1.gz docs/showcrcs.1.gz \
 	docs/writeuptopageid.1.gz
 
 docs/%.1.gz: docs/%.1
@@ -97,35 +101,38 @@ docs/%.1.gz: docs/%.1
 manpages: appendbz2.1 dumplastbz2block.1 findpageidinbz2xml.1 \
 	checkforbz2footer.1 dumpbz2filefromoffset.1 \
 	recompressxml.1 revsperpage.1 writeuptopageid.1 \
-	getlastidinbz2xml.1
+	getlastidinbz2xml.1 showcrcs.1
 	echo "Don't forget to commit your manpage changes to the repo"
 
 appendbz2.1 : appendbz2
 	$(HELP2MAN) --section 1 --no-info --name $(NAME_APPENDBZ2) \
 		--no-discard-stderr ./checkforbz2footer > docs/appendbz2.1
 checkforbz2footer.1 : checkforbz2footer
-	$(HELP2MAN) --section 1 --no-info --name $(NAME_CHECKFORBZ2FOOTER) \
+	LC_TIME=C $(HELP2MAN) --section 1 --no-info --name $(NAME_CHECKFORBZ2FOOTER) \
 		--no-discard-stderr ./checkforbz2footer > docs/checkforbz2footer.1
 dumpbz2filefromoffset.1 : dumpbz2filefromoffset
-	$(HELP2MAN) --section 1 --no-info --name $(NAME_DUMPBZ2FILEFROMOFFSET) \
+	LC_TIME=C $(HELP2MAN) --section 1 --no-info --name $(NAME_DUMPBZ2FILEFROMOFFSET) \
 		--no-discard-stderr ./dumpbz2filefromoffset > docs/dumpbz2filefromoffset.1
 dumplastbz2block.1 : dumplastbz2block
-	$(HELP2MAN) --section 1 --no-info --name $(NAME_DUMPLASTBZ2BLOCK) \
+	LC_TIME=C $(HELP2MAN) --section 1 --no-info --name $(NAME_DUMPLASTBZ2BLOCK) \
 		--no-discard-stderr ./dumplastbz2block > docs/dumplastbz2block.1
 findpageidinbz2xml.1 : findpageidinbz2xml
-	$(HELP2MAN) --section 1 --no-info --name $(NAME_FINDPAGEIDINBZ2XML) \
+	LC_TIME=C $(HELP2MAN) --section 1 --no-info --name $(NAME_FINDPAGEIDINBZ2XML) \
 		--no-discard-stderr ./findpageidinbz2xml > docs/findpageidinbz2xml.1
 getlastidinbz2xml.1 : getlastidinbz2xml
-	$(HELP2MAN) --section 1 --no-info --name $(NAME_GETLASTIDINBZ2XML) \
+	LC_TIME=C $(HELP2MAN) --section 1 --no-info --name $(NAME_GETLASTIDINBZ2XML) \
 		--no-discard-stderr ./getlastidinbz2xml > docs/getlastidinbz2xml.1
 recompressxml.1 : recompressxml
-	$(HELP2MAN) --section 1 --no-info --name $(NAME_RECOMPRESSXML) \
+	LC_TIME=C $(HELP2MAN) --section 1 --no-info --name $(NAME_RECOMPRESSXML) \
 		--no-discard-stderr ./recompressxml > docs/recompressxml.1
 revsperpage.1 : revsperpage
 	LC_TIME=C $(HELP2MAN) --section 1 --no-info --name $(NAME_REVSPERPAGE) \
 		--no-discard-stderr ./revsperpage > docs/revsperpage.1
+showcrcs.1 : showcrcs
+	LC_TIME=C $(HELP2MAN) --section 1 --no-info --name $(NAME_SHOWCRCS) \
+		--no-discard-stderr ./showcrcs > docs/showcrcs.1
 writeuptopageid.1 : writeuptopageid
-	$(HELP2MAN) --section 1 --no-info --name $(NAME_WRITEUPTOPAGEID) \
+	LC_TIME=C $(HELP2MAN) --section 1 --no-info --name $(NAME_WRITEUPTOPAGEID) \
 		--no-discard-stderr ./writeuptopageid > docs/writeuptopageid.1
 
 install: dumplastbz2block findpageidinbz2xml checkforbz2footer dumpbz2filefromoffset \
@@ -139,6 +146,7 @@ install: dumplastbz2block findpageidinbz2xml checkforbz2footer dumpbz2filefromof
 	install --mode=755   getlastidinbz2xml          $(BINDIR)
 	install --mode=755   recompressxml              $(BINDIR)
 	install --mode=755   revsperpage                $(BINDIR)
+	install --mode=755   showcrcs                   $(BINDIR)
 	install --mode=755   writeuptopageid            $(BINDIR)
 	install --mode=755   scripts/show_byte_aligned_crcs.py     $(BINDIR)
 	install --mode=755   scripts/split_bz2.py       $(BINDIR)
@@ -158,6 +166,7 @@ uninstall:
 	rm -f $(BINDIR)dumpbz2filefromoffset
 	rm -f $(BINDIR)recompressxml
 	rm -f $(BINDIR)revsperpage
+	rm -f $(BINDIR)showcrcs
 	rm -f $(BINDIR)writeuptopageid
 	rm -f $(BINDIR)show_byte_aligned_crcs.py
 	rm -f $(BINDIR)split_bz2.py
@@ -170,7 +179,8 @@ clean:
 	rm -f *.o *.a appendbz2 dumplastbz2block findpageidinbz2xml \
 		getlastidinbz2xml \
 		checkforbz2footer dumpbz2filefromoffset \
-		recompressxml revsperpage writeuptopageid docs/*.1.gz
+		recompressxml revsperpage showcrcs writeuptopageid \
+		docs/*.1.gz
 
 distclean: clean
 	rm -f $(DISTNAME)

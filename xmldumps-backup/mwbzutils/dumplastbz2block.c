@@ -117,7 +117,7 @@ int main(int argc, char **argv) {
   b = init_buffer(length);
   bfile.bytes_read = 0;
 
-  if (find_first_bz2_block_from_offset(&bfile, fin, bfile.position, BACKWARD) <= (off_t)0) {
+  if (find_first_bz2_block_from_offset(&bfile, fin, bfile.position, BACKWARD, (off_t)0, 1) <= (off_t)0) {
     fprintf(stderr,"failed to find block in bz2file\n");
     exit(-1);
   }

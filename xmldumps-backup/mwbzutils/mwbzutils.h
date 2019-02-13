@@ -19,9 +19,10 @@ typedef struct {
 typedef struct {
   unsigned char bufin[BUFINSIZE];   /* compressed data read from file */
   unsigned char *bufout;            /* uncompressed data, must be allocated by caller */
-  unsigned char marker_buffer[7];    /* data to test for bz2 block marker */
+  unsigned char marker_buffer[512];    /* data to test for bz2 block marker */
+  unsigned char *marker_buffer_ptr;  /* pointer into the above buffer for next string of bytes to check */
   unsigned char header_buffer[4];    /* first 4 bytes of file (bzip2 header) */
-
+  int header_read;                   /* set if the bz2 header for this file has been read into the header buffer */
   int bufin_size;                    /* size of input buffer for compressed data */
   int bufout_size;                   /* size of output buffer for decompressed data, may vary at each call */
 
@@ -30,7 +31,7 @@ typedef struct {
   off_t block_start;                   /* position of bz2 block in file from which we started to read (we
                                        read a sequence of bz2 blocks from a given position, this is 
                                        the offset to the first one) */
-
+  unsigned char block_info[12];     /* block marker and crc bytes, possibly bit-shifted, for the current block */
   bz_stream strm;                   /* stream structure for libbz2 */
   unsigned char overflow;           /* since decompressed bytes may not be bit aligned, we keep the last byte
 				       read around so we can grab the lower end bits off the end for
@@ -136,6 +137,7 @@ int check_file_for_footer(int fin, bz_info_t *bfile);
 
 void clear_buffer(unsigned char *buf, int length);
 
-off_t find_first_bz2_block_from_offset(bz_info_t *bfile, int fin, off_t position, int direction);
+off_t find_first_bz2_block_from_offset(bz_info_t *bfile, int fin, off_t position,
+				       int direction, off_t filesize, int do_seek);
 
 #endif
