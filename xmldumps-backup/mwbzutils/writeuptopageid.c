@@ -265,7 +265,6 @@ int is_numeric(char *maybe_number) {
 
 void fspec_free(fspec *free_me) {
   if (free_me == NULL) return;
-  if (free_me->filename != NULL) free(free_me);
   free(free_me);
 }
 
@@ -282,18 +281,18 @@ fspec *get_new_fspec(char *fspec_string) {
   if (new_fspec->filename == NULL) {
     fprintf(stderr, "missing filename in fspec %s\n", fspec_string);
     fspec_free(new_fspec);
-    return NULL;
+    usage(NULL);
   }
   next = strtok_r(NULL, ":", &holder);
   if (next == NULL) {
     fprintf(stderr, "missing page start id in fspec %s\n", fspec_string);
     fspec_free(new_fspec);
-    return NULL;
+    usage(NULL);
   }
   if (! is_numeric(next)) {
-    fprintf(stderr, "non-numeric page start id in fspec %s\n", fspec_string);
+    fprintf(stderr, "non-numeric page start id in fspec %s, got %s\n", fspec_string, next);
     fspec_free(new_fspec);
-    return NULL;
+    usage(NULL);
   }
   new_fspec->startid = atoi(next);
 
@@ -305,17 +304,17 @@ fspec *get_new_fspec(char *fspec_string) {
     return(new_fspec);
   }
   if (! is_numeric(next)) {
-    /* fixme should emit some sort of error? */
+    fprintf(stderr, "bad fspec %s, expected numeric for next piece but got %s\n", fspec_string, next);
     fspec_free(new_fspec);
-    return NULL;
+    usage(NULL);
   }
   new_fspec->endid = atoi(next);
   next = strtok_r(NULL, ":", &holder);
   if (next != NULL) {
   /* if there's stuff still left in the string then it's crap */
-    fprintf(stderr, "non-numeric page end id in fspec %s\n", fspec_string);
+    fprintf(stderr, "non-numeric page end id in fspec %s, got %s\n", fspec_string, next);
     fspec_free(new_fspec);
-    return NULL;
+    usage(NULL);
   }
   return new_fspec;
 }
@@ -337,7 +336,6 @@ fspec **get_fspec_list(char *fspecs_string) {
 
   tmp = strtok_r(fspecs_string, ";", &holder);
   if (tmp == NULL) {
-  /* fixme if it's NULL we should give up */
     fprintf(stderr, "badly formatted fspec list (empty?) %s\n", fspecs_string);
     exit(-1);
   }
