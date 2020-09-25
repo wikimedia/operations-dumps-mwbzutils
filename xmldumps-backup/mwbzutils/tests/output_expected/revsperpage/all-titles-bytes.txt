@@ -1,0 +1,20 @@
+page:39 bytes:116 revs:2 title:Χρήστης:MF-Warburg/monobook.js
+page:40 bytes:11682 revs:6 title:Χρήστης:NNeilAlieNN
+page:41 bytes:38470 revs:10 title:Συζήτηση χρήστη:NNeilAlieNN
+page:42 bytes:112 revs:1 title:Χρήστης:Glavkos/common.js
+page:43 bytes:42 revs:1 title:Χρήστης:Xqt
+page:44 bytes:407 revs:6 title:Aegina Town
+page:45 bytes:216 revs:4 title:Agrigent
+page:46 bytes:186 revs:4 title:Aleppo
+page:47 bytes:186 revs:4 title:Algier
+page:48 bytes:186 revs:4 title:Delphi
+page:50 bytes:192 revs:4 title:Korfu
+page:52 bytes:219 revs:4 title:Main Page
+page:53 bytes:232 revs:5 title:Maskat
+page:54 bytes:206 revs:5 title:Namur
+page:55 bytes:204 revs:4 title:Perpignan
+page:56 bytes:1117 revs:7 title:Βικιταξίδια:Κατάλογος γλωσσικών οδηγών
+page:57 bytes:192 revs:4 title:Réthymnon
+page:58 bytes:248 revs:5 title:Saint-Quentin
+page:59 bytes:10062 revs:6 title:Πρότυπο:Double image
+page:60 bytes:144191 revs:32 title:Άγιο Όρος

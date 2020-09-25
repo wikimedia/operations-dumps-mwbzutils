@@ -1,0 +1,13 @@
+bytes:407 maxrevlen:108 revs:6 title:Aegina Town
+bytes:216 maxrevlen:108 revs:4 title:Agrigent
+bytes:186 maxrevlen:108 revs:4 title:Aleppo
+bytes:186 maxrevlen:108 revs:4 title:Algier
+bytes:186 maxrevlen:108 revs:4 title:Delphi
+bytes:192 maxrevlen:108 revs:4 title:Korfu
+bytes:219 maxrevlen:108 revs:4 title:Main Page
+bytes:232 maxrevlen:108 revs:5 title:Maskat
+bytes:206 maxrevlen:108 revs:5 title:Namur
+bytes:204 maxrevlen:108 revs:4 title:Perpignan
+bytes:192 maxrevlen:108 revs:4 title:Réthymnon
+bytes:248 maxrevlen:108 revs:5 title:Saint-Quentin
+bytes:144191 maxrevlen:7519 revs:32 title:Άγιο Όρος

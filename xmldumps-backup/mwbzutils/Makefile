@@ -25,7 +25,7 @@ CFLAGS        ?= -Wall -Werror -O2
 build: checkforbz2footer dumpbz2filefromoffset \
 	dumplastbz2block findpageidinbz2xml \
 	recompressxml writeuptopageid compressedmanpages \
-	getlastidinbz2xml
+	getlastidinbz2xml revsperpage
 
 
 NAME_CHECKFORBZ2FOOTER       = "Check if bzip2 file ends with bz2 magic footer"
@@ -34,6 +34,7 @@ NAME_DUMPLASTBZ2BLOCK        = "Find last bz2 block in bzip2 file and dump conte
 NAME_FINDPAGEIDINBZ2XML      = "Display offset of bz2 block for given page id in bzip2 MediaWiki XML file"
 NAME_FINDLASTPAGEIDINBZ2XML  = "Display last page id bzip2 MediaWiki XML file"
 NAME_RECOMPRESSXML           = "Bz2 compress MediaWiki XML input in batches of pages"
+NAME_REVSPERPAGE             = "Display info about revisions per page from MediaWiki XML input"
 NAME_WRITEUPTOPAGEID         = "Write range of page content from MediaWiki XML input"
 
 PREFIX        ?= "/usr/local"
@@ -69,6 +70,9 @@ getlastidinbz2xml: $(OBJSBZ) mwbzlib.o getlastidinbz2xml.o
 recompressxml: $(OBJSBZ) iohandlers.o recompressxml.o
 	$(CC) $(LDFLAGS) -o recompressxml iohandlers.o recompressxml.o $(LIBS) -lz
 
+revsperpage: revsperpage.o
+	$(CC) $(LDFLAGS) -o revsperpage revsperpage.o
+
 writeuptopageid: $(OBJSBZ) iohandlers.o writeuptopageid.o
 	$(CC) $(LDFLAGS) -o writeuptopageid iohandlers.o writeuptopageid.o $(LIBS) -lz
 
@@ -77,7 +81,8 @@ writeuptopageid: $(OBJSBZ) iohandlers.o writeuptopageid.o
 
 compressedmanpages: docs/dumplastbz2block.1.gz docs/findpageidinbz2xml.1.gz \
 	docs/checkforbz2footer.1.gz docs/dumpbz2filefromoffset.1.gz \
-	docs/recompressxml.1.gz docs/writeuptopageid.1.gz
+	docs/recompressxml.1.gz docs/revsperpage.1.gz \
+	docs/writeuptopageid.1.gz
 
 docs/%.1.gz: docs/%.1
 	cat $< | $(GZIP) > $@
@@ -86,7 +91,7 @@ docs/%.1.gz: docs/%.1
 # or the usage mssages change
 manpages: dumplastbz2block.1 findpageidinbz2xml.1 \
 	checkforbz2footer.1 dumpbz2filefromoffset.1 \
-	recompressxml.1 writeuptopageid.1 \
+	recompressxml.1 revsperpage.1 writeuptopageid.1 \
 	getlastidinbz2xml.1
 	echo "Don't forget to commit your manpage changes to the repo"
 
@@ -108,6 +113,9 @@ getlastidinbz2xml.1 : getlastidinbz2xml
 recompressxml.1 : recompressxml
 	$(HELP2MAN) --section 1 --no-info --name $(NAME_RECOMPRESSXML) \
 		--no-discard-stderr ./recompressxml > docs/recompressxml.1
+revsperpage.1 : revsperpage
+	LC_TIME=C $(HELP2MAN) --section 1 --no-info --name $(NAME_REVSPERPAGE) \
+		--no-discard-stderr ./revsperpage > docs/revsperpage.1
 writeuptopageid.1 : writeuptopageid
 	$(HELP2MAN) --section 1 --no-info --name $(NAME_WRITEUPTOPAGEID) \
 		--no-discard-stderr ./writeuptopageid > docs/writeuptopageid.1
@@ -121,6 +129,7 @@ install: dumplastbz2block findpageidinbz2xml checkforbz2footer dumpbz2filefromof
 	install --mode=755   findpageidinbz2xml         $(BINDIR)
 	install --mode=755   getlastidinbz2xml          $(BINDIR)
 	install --mode=755   recompressxml              $(BINDIR)
+	install --mode=755   revsperpage                $(BINDIR)
 	install --mode=755   writeuptopageid            $(BINDIR)
 	install --directory                             $(MANDIR)
 	install --mode=644   docs/*.1.gz                $(MANDIR)
@@ -136,6 +145,7 @@ uninstall:
 	rm -f $(BINDIR)checkforbz2footer
 	rm -f $(BINDIR)dumpbz2filefromoffset
 	rm -f $(BINDIR)recompressxml
+	rm -f $(BINDIR)revsperpage
 	rm -f $(BINDIR)writeuptopageid
 	rm -f $(MANDIR)*.1.gz
 	rm -f $(DOCDIR)README
@@ -146,7 +156,7 @@ clean:
 	rm -f *.o *.a dumplastbz2block findpageidinbz2xml \
 		getlastidinbz2xml \
 		checkforbz2footer dumpbz2filefromoffset \
-		recompressxml writeuptopageid docs/*.1.gz
+		recompressxml revsperpage writeuptopageid docs/*.1.gz
 
 distclean: clean
 	rm -f $(DISTNAME)
