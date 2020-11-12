@@ -95,8 +95,8 @@ States setState (char *line, States currentState) {
   return(currentState);
 }
 
-int get_bytelen(char *text) {
-  int length = 0;
+long int get_bytelen(char *text) {
+  long int length = 0L;
   char *entry = NULL;
 
   /* typical entry in stubs used to be: <text id="11453" bytes="4837" />
@@ -128,9 +128,9 @@ int main(int argc,char **argv) {
   char *text;
   char line[4097];
   int revisions = 0;
-  int length = 0;
-  int revlen;
-  int maxrevlen = 0;
+  long int length = 0L;
+  long int revlen;
+  long int maxrevlen = 0L;
   int batch = 0;
   int batchstart = 1;
   int concise = 0;
@@ -216,8 +216,8 @@ int main(int argc,char **argv) {
 	  pagecount = 1;
 	}
 	revisions = 0;
-	length = 0;
-	maxrevlen = 0;
+	length = 0L;
+	maxrevlen = 0L;
 	if (title != NULL)
 	  free(title);
       }
@@ -260,12 +260,12 @@ int main(int argc,char **argv) {
 	  else fprintf(stdout, "page:%d ",pageid);
 	}
 	if (do_length) {
-	  if (concise) fprintf(stdout, "%d:",length);
-	  else fprintf(stdout, "bytes:%d ",length);
+	  if (concise) fprintf(stdout, "%ld:",length);
+	  else fprintf(stdout, "bytes:%ld ",length);
 	}
 	if (do_maxrevlen) {
-	  if (concise) fprintf(stdout, "%d:",maxrevlen);
-	  else fprintf(stdout, "maxrevlen:%d ",maxrevlen);
+	  if (concise) fprintf(stdout, "%ld:",maxrevlen);
+	  else fprintf(stdout, "maxrevlen:%ld ",maxrevlen);
 	}
 	if (concise) fprintf(stdout, "%d",revisions);
 	else fprintf(stdout, "revs:%d",revisions);

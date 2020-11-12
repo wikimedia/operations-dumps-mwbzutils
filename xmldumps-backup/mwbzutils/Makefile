@@ -16,7 +16,7 @@
 # 2010-2019: see the file COPYING for details.
 # ------------------------------------------------------------------
 
-VERSION        = "0.0.10"
+VERSION        = "0.0.11"
 CC            ?= gcc
 BIGFILES       = -D_FILE_OFFSET_BITS=64
 CPPFLAGS      += $(BIGFILES) -DVERSION=\"$(VERSION)\"
