@@ -22,6 +22,10 @@ check_bz2_pagerange.py - Checks that the first and last page of a bz2 content
 			 page id. This uses the MediaWiki api as well as
 			 the getlastidinbz2xml utility for which see below.
 
+split_bz2.py          -  Uses the dumpbz2filefromoffset and writeuptopageid
+                         utilities described below, to split an xml dump bz2
+			 file into smaller ones.
+
 Utilities:
 
 checkforbz2footer     - Tests to see if the bz2 file specified on the command line

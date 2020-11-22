@@ -131,6 +131,7 @@ install: dumplastbz2block findpageidinbz2xml checkforbz2footer dumpbz2filefromof
 	install --mode=755   recompressxml              $(BINDIR)
 	install --mode=755   revsperpage                $(BINDIR)
 	install --mode=755   writeuptopageid            $(BINDIR)
+	install --mode=755   scripts/split_bz2.py       $(BINDIR)
 	install --directory                             $(MANDIR)
 	install --mode=644   docs/*.1.gz                $(MANDIR)
 	install --directory                             $(DOCDIR)
@@ -147,6 +148,7 @@ uninstall:
 	rm -f $(BINDIR)recompressxml
 	rm -f $(BINDIR)revsperpage
 	rm -f $(BINDIR)writeuptopageid
+	rm -f $(BINDIR)split_bz2.py
 	rm -f $(MANDIR)*.1.gz
 	rm -f $(DOCDIR)README
 	rm -f $(DOCDIR)LICENSE_BZ
