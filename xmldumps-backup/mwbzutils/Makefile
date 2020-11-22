@@ -148,6 +148,7 @@ install: dumplastbz2block findpageidinbz2xml checkforbz2footer dumpbz2filefromof
 	install --mode=755   revsperpage                $(BINDIR)
 	install --mode=755   showcrcs                   $(BINDIR)
 	install --mode=755   writeuptopageid            $(BINDIR)
+	install --mode=755   scripts/munge_crc_info.py  $(BINDIR)
 	install --mode=755   scripts/show_byte_aligned_crcs.py     $(BINDIR)
 	install --mode=755   scripts/split_bz2.py       $(BINDIR)
 	install --directory                             $(MANDIR)
@@ -168,6 +169,7 @@ uninstall:
 	rm -f $(BINDIR)revsperpage
 	rm -f $(BINDIR)showcrcs
 	rm -f $(BINDIR)writeuptopageid
+	rm -f $(BINDIR)munge_crc_info.py
 	rm -f $(BINDIR)show_byte_aligned_crcs.py
 	rm -f $(BINDIR)split_bz2.py
 	rm -f $(MANDIR)*.1.gz

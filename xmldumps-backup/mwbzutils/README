@@ -22,6 +22,11 @@ check_bz2_pagerange.py - Checks that the first and last page of a bz2 content
 			 page id. This uses the MediaWiki api as well as
 			 the getlastidinbz2xml utility for which see below.
 
+munge_crc_info.py      - Given a file of output from showcrcs which only displays
+		       	 only hex values of the offset and the block crcs,
+			 display the int values as well as the combined
+			 crc for each block.
+
 show_byte_aligned_crcs.py - Find all byte-aligned bz2 blocks in a file and
   			 show their offsets, crcs and the combined crc
 			 of the blocks up to that point. Blocks are found
