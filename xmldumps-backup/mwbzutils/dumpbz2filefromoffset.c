@@ -209,10 +209,9 @@ int dump_from_first_page_id_after_offset(int fin, off_t position) {
 	  firstpage = 0;
 	}
 	else {
+	  /* we don't write anything, just refill the buffer */
 	  /* could have the first part of the page tag... so copy up enough bytes to cover that case */
 	  if (b->bytes_avail> 7) {
-	    /* write everything that didn't match, but leave 7 bytes, to stdout */
-	    fwrite(b->next_to_read,b->bytes_avail - 7,1,stdout);
 	    move_bytes_to_buffer_start(b, b->next_to_read + b->bytes_avail - 7, 7);
 	    bfile.strm.next_out = (char *)b->next_to_fill;
 	    bfile.strm.avail_out = b->end - b->next_to_fill;
