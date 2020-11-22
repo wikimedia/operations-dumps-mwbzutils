@@ -22,6 +22,14 @@ check_bz2_pagerange.py - Checks that the first and last page of a bz2 content
 			 page id. This uses the MediaWiki api as well as
 			 the getlastidinbz2xml utility for which see below.
 
+show_byte_aligned_crcs.py - Find all byte-aligned bz2 blocks in a file and
+  			 show their offsets, crcs and the combined crc
+			 of the blocks up to that point. Blocks are found
+			 by looking for the start of block marker, but
+			 are not decompressed to verify that they are valid.
+			 There is a small possibility that a marker could
+			 exist naturally in the middle of a block.
+
 split_bz2.py          -  Uses the dumpbz2filefromoffset and writeuptopageid
                          utilities described below, to split an xml dump bz2
 			 file into smaller ones.
