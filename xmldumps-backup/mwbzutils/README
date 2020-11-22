@@ -28,6 +28,13 @@ split_bz2.py          -  Uses the dumpbz2filefromoffset and writeuptopageid
 
 Utilities:
 
+appendbz2             - Reading from stdin, writes bz2-compressed output with
+                        bz2 footer but no bz2 header, with a combined crc
+		        dependent on an initial combined crc argument and
+			the crc of the blocks dependent on the data from stdin.
+			        This can be used to write data to append to a bz2
+                        file truncated at a byte-aligned bz2 block.
+
 checkforbz2footer     - Tests to see if the bz2 file specified on the command line
 		        has a bz2 footer (if it does it is likely to be intact).
 			Exits with 0 if found, 1 otherwise.

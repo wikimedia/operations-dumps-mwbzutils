@@ -22,12 +22,13 @@ BIGFILES       = -D_FILE_OFFSET_BITS=64
 CPPFLAGS      += $(BIGFILES) -DVERSION=\"$(VERSION)\"
 CFLAGS        ?= -Wall -Werror -O2
 
-build: checkforbz2footer dumpbz2filefromoffset \
+build: appendbz2 checkforbz2footer dumpbz2filefromoffset \
 	dumplastbz2block findpageidinbz2xml \
 	recompressxml writeuptopageid compressedmanpages \
 	getlastidinbz2xml revsperpage
 
 
+NAME_APPENDBZ2               = "Given combined crc of prev content, write appendable bz2 output from stdin"
 NAME_CHECKFORBZ2FOOTER       = "Check if bzip2 file ends with bz2 magic footer"
 NAME_DUMPBZ2FILEFROMOFFSET   = "Write MediaWiki XML pages from bzip2 file starting from offset"
 NAME_DUMPLASTBZ2BLOCK        = "Find last bz2 block in bzip2 file and dump contents"
@@ -51,6 +52,9 @@ DISTNAME       = mwbzutils-$(VERSION)
 LIBS           = -lbz2
 OBJSBZ         = bzlibfuncs.o
 OBJS           = mwbzlib.o $(OBJSBZ)
+
+appendbz2: $(OBJSBZ) mwbzlib.o appendbz2.o
+	$(CC) $(LDFLAGS) -o appendbz2 appendbz2.o $(OBJS) $(LIBS)
 
 checkforbz2footer: $(OBJSBZ) mwbzlib.o checkforbz2footer.o
 	$(CC) $(LDFLAGS) -o checkforbz2footer checkforbz2footer.o $(OBJS) $(LIBS)
@@ -79,7 +83,8 @@ writeuptopageid: $(OBJSBZ) iohandlers.o writeuptopageid.o
 %.o: %.c
 	$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
 
-compressedmanpages: docs/dumplastbz2block.1.gz docs/findpageidinbz2xml.1.gz \
+compressedmanpages: docs/appendbz2.1.gz docs/dumplastbz2block.1.gz \
+	docs/findpageidinbz2xml.1.gz \
 	docs/checkforbz2footer.1.gz docs/dumpbz2filefromoffset.1.gz \
 	docs/recompressxml.1.gz docs/revsperpage.1.gz \
 	docs/writeuptopageid.1.gz
@@ -89,12 +94,15 @@ docs/%.1.gz: docs/%.1
 
 # this target should only be made when updating the source if the version
 # or the usage mssages change
-manpages: dumplastbz2block.1 findpageidinbz2xml.1 \
+manpages: appendbz2.1 dumplastbz2block.1 findpageidinbz2xml.1 \
 	checkforbz2footer.1 dumpbz2filefromoffset.1 \
 	recompressxml.1 revsperpage.1 writeuptopageid.1 \
 	getlastidinbz2xml.1
 	echo "Don't forget to commit your manpage changes to the repo"
 
+appendbz2.1 : appendbz2
+	$(HELP2MAN) --section 1 --no-info --name $(NAME_APPENDBZ2) \
+		--no-discard-stderr ./checkforbz2footer > docs/appendbz2.1
 checkforbz2footer.1 : checkforbz2footer
 	$(HELP2MAN) --section 1 --no-info --name $(NAME_CHECKFORBZ2FOOTER) \
 		--no-discard-stderr ./checkforbz2footer > docs/checkforbz2footer.1
@@ -123,6 +131,7 @@ writeuptopageid.1 : writeuptopageid
 install: dumplastbz2block findpageidinbz2xml checkforbz2footer dumpbz2filefromoffset \
 	recompressxml writeuptopageid compressedmanpages getlastidinbz2xml
 	install --directory                             $(BINDIR)
+	install --mode=755   appendbz2                  $(BINDIR)
 	install --mode=755   checkforbz2footer          $(BINDIR)
 	install --mode=755   dumplastbz2block           $(BINDIR)
 	install --mode=755   dumpbz2filefromoffset      $(BINDIR)
@@ -140,6 +149,7 @@ install: dumplastbz2block findpageidinbz2xml checkforbz2footer dumpbz2filefromof
 	install --mode=644   COPYING                    $(DOCDIR)
 
 uninstall:
+	rm -f $(BINDIR)appendbz2
 	rm -f $(BINDIR)dumplastbz2block
 	rm -f $(BINDIR)findpageidinbz2xml
 	rm -f $(BINDIR)getlastidinbz2xml
@@ -155,7 +165,7 @@ uninstall:
 	rm -f $(DOCDIR)COPYING
 
 clean:
-	rm -f *.o *.a dumplastbz2block findpageidinbz2xml \
+	rm -f *.o *.a appendbz2 dumplastbz2block findpageidinbz2xml \
 		getlastidinbz2xml \
 		checkforbz2footer dumpbz2filefromoffset \
 		recompressxml revsperpage writeuptopageid docs/*.1.gz

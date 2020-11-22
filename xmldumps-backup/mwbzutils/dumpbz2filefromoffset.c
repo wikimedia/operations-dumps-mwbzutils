@@ -30,6 +30,7 @@ void usage(char *message) {
 "Arguments:\n\n"
 "  <infile>         Name of the file to check\n"
 "  <offset>         byte in the file from which to start processing\n\n"
+"  [raw]            Don't add a header or start from <page> but print raw contents\n"
 "Report bugs in dumpbz2filefromoffset to <https://phabricator.wikimedia.org/>.\n\n"
 "See also checkforbz2footer(1), dumplastbz2block(1), findpageidinbz2xml(1),\n"
     "recompressxml(1), writeuptopageid(1)\n\n";
@@ -209,7 +210,6 @@ int dump_from_first_page_id_after_offset(int fin, off_t position) {
 	  firstpage = 0;
 	}
 	else {
-	  /* we don't write anything, just refill the buffer */
 	  /* could have the first part of the page tag... so copy up enough bytes to cover that case */
 	  if (b->bytes_avail> 7) {
 	    move_bytes_to_buffer_start(b, b->next_to_read + b->bytes_avail - 7, 7);
@@ -254,9 +254,54 @@ int dump_from_first_page_id_after_offset(int fin, off_t position) {
   return(0);
 }
 
+/*
+   decompress and dump to stdout from specified offset
+   (must be the start of a bz2 block)
+   returns:
+      0 on success,
+      -1 on error
+*/
+int dump_from_offset(int fin, off_t position) {
+  int length=5000; /* output buffer size */
+
+  buf_info_t *b;
+  bz_info_t bfile;
+
+  bfile.initialized = 0;
+  bfile.marker = NULL;
+
+  b = init_buffer(length);
+  bfile.bytes_read = 0;
+  bfile.position = position;
+
+  while ((get_buffer_of_uncompressed_data(b, fin, &bfile, FORWARD)>=0) && (! bfile.eof)) {
+    /* fixme either we don't check the return code right or we don't notice no bytes read or we don't clear the bytes read */
+    if (bfile.bytes_read) {
+      if (b->bytes_avail) {
+	fwrite(b->next_to_read,b->bytes_avail,1,stdout);
+	b->next_to_read = b->end;
+	b->bytes_avail = 0;
+	b->next_to_fill = b->buffer; /* empty */
+	bfile.strm.next_out = (char *)b->next_to_fill;
+	bfile.strm.avail_out = b->end - b->next_to_fill;
+      }
+    }
+  }
+  if (b->bytes_avail) {
+    fwrite(b->next_to_read,b->bytes_avail,1,stdout);
+    b->next_to_read = b->end;
+    b->bytes_avail = 0;
+    b->next_to_fill = b->buffer; /* empty */
+    bfile.strm.next_out = (char *)b->next_to_fill;
+    bfile.strm.avail_out = b->end - b->next_to_fill;
+  }
+  return(0);
+}
+
 int main(int argc, char **argv) {
   int fin, res;
   off_t position;
+  int raw = 0;
 
   int optc;
   int optindex=0;
@@ -267,7 +312,7 @@ int main(int argc, char **argv) {
     {NULL, 0, NULL, 0}
   };
 
-  if (argc < 2 || argc > 3) {
+  if (argc < 2 || argc > 4) {
     usage("Missing or bad options/arguments");
     exit(-1);
   }
@@ -301,9 +346,19 @@ int main(int argc, char **argv) {
     fprintf(stderr,"usage: %s infile offset\n", argv[0]);
     exit(-1);
   }
+  optind++;
+  if (optind < argc) {
+    if (! strcmp(argv[optind], "raw")) {
+      raw = 1;
+    }
+  }
   /* input file, starting position in file, length of buffer for reading */
-  res = dump_mw_header(fin);
-
-  res = dump_from_first_page_id_after_offset(fin, position);
+  if (!raw) {
+    res = dump_mw_header(fin);
+    res = dump_from_first_page_id_after_offset(fin, position);
+  }
+  else {
+    res = dump_from_offset(fin, position);
+  }
   exit(res);
 }
