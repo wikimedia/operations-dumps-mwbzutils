@@ -220,6 +220,7 @@ int main(int argc, char **argv) {
   int result;
 
   struct option optvalues[] = {
+    {"help", 0, 0, 'h'},
     {"filename", 1, 0, 'f'},
     {"type", 1, 0, 't'},
     {"verbose", 0, 0, 'v'},
