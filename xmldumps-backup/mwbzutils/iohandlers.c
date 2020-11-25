@@ -483,7 +483,7 @@ int txt_write_o(OutputHandler *oh, char *buffer, int bytecount) {
 
   results = fwrite(buffer, 1, bytecount, oh->fout);
   oh->offset_txt += results;
-  return(0);
+  return(results);
 }
 
 int txt_close_o(OutputHandler *oh) {
