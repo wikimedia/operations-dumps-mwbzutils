@@ -70,39 +70,6 @@ void show_version(char *version_string) {
   exit(-1);
 }
 
-/*
-   find the first bz2 block marker in the file,
-   from its current position,
-   then set up for decompression from that point
-   returns:
-     0 on success
-     -1 if no marker or other error
-*/
-int init_and_read_first_buffer_bz2_file(bz_info_t *bfile, int fin) {
-  int res;
-
-  bfile->bufin_size = BUFINSIZE;
-  bfile->marker = init_marker();
-  bfile->bytes_read = 0;
-  bfile->bytes_written = 0;
-  bfile->eof = 0;
-  bfile->file_size = get_file_size(fin);
-
-  bfile->initialized++;
-
-  res = find_next_bz2_block_marker(fin, bfile, FORWARD);
-  if (res ==1) {
-    init_decompress(bfile);
-    decompress_header(fin, bfile);
-    setup_first_buffer_to_decompress(fin, bfile);
-    return(0);
-  }
-  else {
-    fprintf(stderr,"Failed to find the next block marker\n");
-    return(-1);
-  }
-}
-
 extern char * geturl(char *hostname, int port, char *url);
 
 char *get_hostname_from_xml_header(int fin) {
