@@ -36,6 +36,8 @@ check_tests() {
     done
     if [ $errors != "0" ]; then
 	echo "TEST FAILURES in $errors tests"
+    else
+	echo "SUCCESS"
     fi
 }
 
