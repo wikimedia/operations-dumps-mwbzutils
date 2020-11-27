@@ -16,7 +16,7 @@
 # 2010-2019: see the file COPYING for details.
 # ------------------------------------------------------------------
 
-VERSION        = "0.0.11"
+VERSION        = "0.1.1"
 CC            ?= gcc
 BIGFILES       = -D_FILE_OFFSET_BITS=64
 CPPFLAGS      += $(BIGFILES) -DVERSION=\"$(VERSION)\"
@@ -202,5 +202,6 @@ dist:
 	   $(DISTNAME)/COPYING \
 	   $(DISTNAME)/README \
 	   $(DISTNAME)/CHANGES \
-	   $(DISTNAME)/docs/*1
+	   $(DISTNAME)/docs/*1 \
+	   $(DISTNAME)/scripts/*.py
 	gzip -v $(DISTNAME).tar
