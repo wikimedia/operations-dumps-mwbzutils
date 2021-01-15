@@ -5,6 +5,11 @@
 test_setup() {
     rm -rf tests/output
     mkdir tests/output
+    if [ -e "/usr/bin/zcat" ]; then
+        ZCAT="/usr/bin/zcat"
+    else
+        ZCAT="/bin/zcat"
+    fi
 }
 
 if [ ! -e revsperpage ]; then
@@ -14,14 +19,14 @@ fi
 
 do_tests() {
     inputfile="$1"
-    /usr/bin/zcat "$inputfile" | ./revsperpage --all > tests/output/all.txt
-    /usr/bin/zcat "$inputfile" | ./revsperpage --all --title > tests/output/all-titles.txt
-    /usr/bin/zcat "$inputfile" | ./revsperpage --all --title --bytes > tests/output/all-titles-bytes.txt
-    /usr/bin/zcat "$inputfile" | ./revsperpage --all --maxrevlen > tests/output/all-maxrevlen.txt
-    /usr/bin/zcat "$inputfile" | ./revsperpage --all --title --cutoff 5 > tests/output/all-titles-cutoff.txt
-    /usr/bin/zcat "$inputfile" | ./revsperpage --all --batch 4 > tests/output/all-batch.txt
-    /usr/bin/zcat "$inputfile" | ./revsperpage --title --maxrevlen --bytes > tests/output/maxrevlen-bytes-titles.txt
-    /usr/bin/zcat "$inputfile" | ./revsperpage --maxrevlen --bytes --batch 4 > tests/output/maxrevlen-bytes-batch.txt
+    $ZCAT "$inputfile" | ./revsperpage --all > tests/output/all.txt
+    $ZCAT "$inputfile" | ./revsperpage --all --title > tests/output/all-titles.txt
+    $ZCAT "$inputfile" | ./revsperpage --all --title --bytes > tests/output/all-titles-bytes.txt
+    $ZCAT "$inputfile" | ./revsperpage --all --maxrevlen > tests/output/all-maxrevlen.txt
+    $ZCAT "$inputfile" | ./revsperpage --all --title --cutoff 5 > tests/output/all-titles-cutoff.txt
+    $ZCAT "$inputfile" | ./revsperpage --all --batch 4 > tests/output/all-batch.txt
+    $ZCAT "$inputfile" | ./revsperpage --title --maxrevlen --bytes > tests/output/maxrevlen-bytes-titles.txt
+    $ZCAT "$inputfile" | ./revsperpage --maxrevlen --bytes --batch 4 > tests/output/maxrevlen-bytes-batch.txt
 }
 
 check_tests() {

@@ -10,6 +10,11 @@ test_setup() {
     cp siteinfo-header-footer.gz siteinfo-header-footer-before-range.gz
     cp siteinfo-header-footer.gz siteinfo-header-footer-after-range.gz
     cd ../../../
+    if [ -e "/usr/bin/zcat" ]; then
+        ZCAT="/usr/bin/zcat"
+    else
+        ZCAT="/bin/zcat"
+    fi
 }
 
 if [ ! -e writeuptopageid ]; then
@@ -28,21 +33,21 @@ test_cleanup() {
 do_tests() {
     inputfile="$1"
     # without filespec
-    zcat "$inputfile" | ./writeuptopageid 40 45 | gzip > tests/output/stubs-p40p44.xml.gz
-    zcat "$inputfile" | ./writeuptopageid 20 21 | gzip > tests/output/siteinfo-header-footer-before-range.gz
-    zcat "$inputfile" | ./writeuptopageid 70 80 | gzip > tests/output/siteinfo-header-footer-after-range.gz
+    $ZCAT "$inputfile" | ./writeuptopageid 40 45 | gzip > tests/output/stubs-p40p44.xml.gz
+    $ZCAT "$inputfile" | ./writeuptopageid 20 21 | gzip > tests/output/siteinfo-header-footer-before-range.gz
+    $ZCAT "$inputfile" | ./writeuptopageid 70 80 | gzip > tests/output/siteinfo-header-footer-after-range.gz
     # with filespec
-    zcat "$inputfile" | ./writeuptopageid -o tests/output -f stubs-p40p44-filespec.xml.gz:40:45
-    zcat "$inputfile" | ./writeuptopageid -o tests/output -f header.gz:20:30 -F 
-    zcat "$inputfile" | ./writeuptopageid -o tests/output -f footer.gz:20:30 -H
-    zcat "$inputfile" | ./writeuptopageid -o tests/output -f empty.gz:20:30 -F -H
+    $ZCAT "$inputfile" | ./writeuptopageid -o tests/output -f stubs-p40p44-filespec.xml.gz:40:45
+    $ZCAT "$inputfile" | ./writeuptopageid -o tests/output -f header.gz:20:30 -F
+    $ZCAT "$inputfile" | ./writeuptopageid -o tests/output -f footer.gz:20:30 -H
+    $ZCAT "$inputfile" | ./writeuptopageid -o tests/output -f empty.gz:20:30 -F -H
 }
 
 check_tests() {
     errors=0
     for outfile in stubs-p40p44.xml.gz siteinfo-header-footer-before-range.gz siteinfo-header-footer-after-range.gz stubs-p40p44-filespec.xml.gz header.gz footer.gz empty.gz; do
-	zcat "tests/output/${outfile}" > "tests/output/temp/got.txt"
-	zcat "tests/output_expected/writeuptopageid/${outfile}" > "tests/output/temp/expected.txt"
+	$ZCAT "tests/output/${outfile}" > "tests/output/temp/got.txt"
+	$ZCAT "tests/output_expected/writeuptopageid/${outfile}" > "tests/output/temp/expected.txt"
 	cmp -s "tests/output/temp/got.txt" "tests/output/temp/expected.txt"
 	if [ $? != 0 ]; then
 	    echo "TEST FAILED, diff between tests/output/${outfile} and tests/output_expected/writeuptopageid/${outfile}:"

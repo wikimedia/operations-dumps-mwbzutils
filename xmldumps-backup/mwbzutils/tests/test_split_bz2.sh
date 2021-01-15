@@ -19,10 +19,10 @@ fi
 
 do_tests() {
     inputfile="$1"
-    python3 scripts/split_bz2.py -f tests/input/pages-articles.xml-p1p2689.bz2 -s 250K -o tests/output -b 2 --dryrun 2> tests/output/dryrun.txt
+    python3 scripts/split_bz2.py -f tests/input/pages-articles.xml-p1p2689.bz2 -s 250K -o tests/output -b 2 -u '.' --dryrun 2> tests/output/dryrun.txt
     bzip2 tests/output/dryrun.txt
 
-    python3 scripts/split_bz2.py -f tests/input/pages-articles.xml-p1p2689.bz2 -s 250K -o tests/output -b 2
+    python3 scripts/split_bz2.py -f tests/input/pages-articles.xml-p1p2689.bz2 -s 250K -o tests/output -b 2 -u '.'
 }
 
 check_tests() {

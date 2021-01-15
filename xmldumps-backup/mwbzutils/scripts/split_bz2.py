@@ -24,7 +24,7 @@ def usage(message=None):
         sys.stderr.write(message + "\n")
     usage_message = """Usage:
    split_bz2.py --files <path>[:lastpage][,<path>[:lastpage]...] --splitsize <int>
-                --odir <path> [--batchsize] [--verbose] [--dryrun]
+                --odir <path> --utilsdir <path> [--batchsize] [--verbose] [--dryrun]
 or:
    split_bz2.py --help
 
@@ -50,6 +50,7 @@ Arguments:
                     to the current working directory from where the script is
                     invoked, not the directory where the script resides
  --batchsize (-b):  number of split processes to run at once; default 1
+ --utilsdir  (-u):  path to C utils used by this script; default /usr/local/bin
 
 Flags:
 
@@ -67,7 +68,7 @@ Example:
     sys.exit(1)
 
 
-def validate_args(files, splitsize, outputdir, batchsize):
+def validate_args(files, splitsize, outputdir, utilsdir, batchsize):
     '''
     complain about various args if not set or they have bad
     values
@@ -88,6 +89,11 @@ def validate_args(files, splitsize, outputdir, batchsize):
         outputdir = os.path.join(os.getcwd(), outputdir)
     if not os.path.exists(outputdir):
         usage("No such directory: " + outputdir)
+
+    if not os.path.isabs(utilsdir):
+        utilsdir = os.path.join(os.path.dirname(__file__), utilsdir)
+    if not os.path.exists(utilsdir):
+        usage("No such directory: " + utilsdir)
 
     if not batchsize.isdigit():
         usage("batchsize must be an number")
@@ -134,13 +140,14 @@ def parse_args():
     splitsize = None
     files = None
     outputdir = None
+    utilsdir = "."
     batchsize = "1"
     flags = {'verbose': False, 'dryrun': False}
 
     try:
         (options, remainder) = getopt.gnu_getopt(
-            sys.argv[1:], "b:f:o:s:dvh", ["batchsize=", "files=", "odir=", "splitsize=",
-                                          "dryrun", "verbose", "help"])
+            sys.argv[1:], "b:f:o:s:u:dvh", ["batchsize=", "files=", "odir=", "splitsize=",
+                                            "utilsdir=", "dryrun", "verbose", "help"])
 
     except getopt.GetoptError as err:
         usage("Unknown option specified: " + str(err))
@@ -152,6 +159,8 @@ def parse_args():
             files = val.split(',')
         elif opt in ["-o", "--odir"]:
             outputdir = val
+        elif opt in ["-u", "--utilsdir"]:
+            utilsdir = val
         elif opt in ["-s", "--splitsize"]:
             splitsize = val
         elif opt in ["-d", "--dryrun"]:
@@ -166,9 +175,9 @@ def parse_args():
     if remainder:
         usage("Unknown option(s) specified: {opt}".format(opt=remainder[0]))
 
-    validate_args(files, splitsize, outputdir, batchsize)
+    validate_args(files, splitsize, outputdir, utilsdir, batchsize)
     files_pages = get_files_pages(files)
-    return convert_num(splitsize), files_pages, outputdir, int(batchsize), flags
+    return convert_num(splitsize), files_pages, outputdir, utilsdir, int(batchsize), flags
 
 
 def get_file_offsets(filename, splitsize):
@@ -221,13 +230,13 @@ def get_todo_basics(files_pages, splitsize):
     return todos
 
 
-def get_pageid_commands(filename, offset):
+def get_pageid_commands(filename, offset, utilsdir):
     '''
     given an input bz2 filename and an offset into the file,
     generate the pipeline commands to run that will produce
     the first page id after that offset
     '''
-    dumpbz2_cmd = ["/usr/local/bin/dumpbz2filefromoffset", filename, str(offset)]
+    dumpbz2_cmd = [os.path.join(utilsdir, "dumpbz2filefromoffset"), filename, str(offset)]
     egrep_cmd = ["/bin/grep", "-m", "1", "-A", "5", "-a", "<page>"]
     return [dumpbz2_cmd, egrep_cmd]
 
@@ -286,7 +295,7 @@ def get_outfile_templ(filename):
     return basename + '.xml-' + prange + ext
 
 
-def get_writeupto_commands(todos, filename, offset, next_offset):
+def get_writeupto_commands(todos, filename, offset, next_offset, utilsdir):
     '''
     return the pipeline of commands to do writeuptopageid for a particular
     output piece from a given offset of the input file
@@ -320,8 +329,8 @@ def get_writeupto_commands(todos, filename, offset, next_offset):
         end = str(todos[filename]['lastpage'])
     outfile = todos[filename]['outputfiletempl'].format(start=start, end=end)
     outfile_spec = outfile + ":" + start + ":" + str(int(end) + 1)
-    dumpbz2_cmd = ["/usr/local/bin/dumpbz2filefromoffset", filename, str(offset)]
-    writeuptopageid_cmd = ["/usr/local/bin/writeuptopageid", "-o",
+    dumpbz2_cmd = [os.path.join(utilsdir, "dumpbz2filefromoffset"), filename, str(offset)]
+    writeuptopageid_cmd = [os.path.join(utilsdir, "writeuptopageid"), "-o",
                            todos[filename]['odir'], "-f", outfile_spec]
     return [dumpbz2_cmd, writeuptopageid_cmd], os.path.join(todos[filename]['odir'], outfile)
 
@@ -385,7 +394,7 @@ def maybe_run_split_commands(to_run, flags):
     return run_split_commands(commands)
 
 
-def set_first_page_ids(todos, filename, flags):
+def set_first_page_ids(todos, filename, flags, utilsdir):
     '''
     find and store the first page id after each offset in the
     (compressed) file. if none is found we silently skip
@@ -393,7 +402,7 @@ def set_first_page_ids(todos, filename, flags):
     '''
     ordered_offsets = sorted(list(todos[filename]['offsets']))
     for offset in ordered_offsets:
-        commands = get_pageid_commands(filename, offset)
+        commands = get_pageid_commands(filename, offset, utilsdir)
         page_id = run_pageid_commands(commands, flags)
         if flags['verbose']:
             print("got first page id", page_id, "for offset:", offset, "of file:",
@@ -406,7 +415,7 @@ def set_first_page_ids(todos, filename, flags):
         todos[filename]['entries'][offset]['firstpage'] = page_id
 
 
-def set_split_commands(todos, filename, flags):
+def set_split_commands(todos, filename, flags, utilsdir):
     '''
     given the first page id after every offset,
     generate and stash the commands to write the pieces
@@ -439,29 +448,29 @@ def set_split_commands(todos, filename, flags):
                           file=sys.stderr)
                 continue
         todo_entry_offset['commands'], todo_entry_offset['outputfile'] = (
-            get_writeupto_commands(todos, filename, offset, next_offset))
+            get_writeupto_commands(todos, filename, offset, next_offset, utilsdir))
 
 
-def fill_in_todos(todos, outputdir, flags):
+def fill_in_todos(todos, outputdir, flags, utilsdir):
     '''fill in the todos the rest of the way with
     output directory info, commands, etc.'''
     for filename in todos:
         todos[filename]['odir'] = outputdir
         todos[filename]['outputfiletempl'] = get_outfile_templ(filename)
         todos[filename]['entries'] = {}
-        set_first_page_ids(todos, filename, flags)
-        set_split_commands(todos, filename, flags)
+        set_first_page_ids(todos, filename, flags, utilsdir)
+        set_split_commands(todos, filename, flags, utilsdir)
 
 
 def do_main():
     '''
     entry point
     '''
-    splitsize, files_pages, outputdir, batches, flags = parse_args()
+    splitsize, files_pages, outputdir, utilsdir, batches, flags = parse_args()
 
     todos = get_todo_basics(files_pages, splitsize)
 
-    fill_in_todos(todos, outputdir, flags)
+    fill_in_todos(todos, outputdir, flags, utilsdir)
 
     while True:
         to_run = get_batch(todos, batches, flags)
