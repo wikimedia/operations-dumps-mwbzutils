@@ -147,6 +147,7 @@ int find_next_bz2_block_marker(int fin, bz_info_t *bfile, int direction) {
   ssize_t bytes_read = 0;
   ssize_t bytes_avail = 0;
   ssize_t bytes_used = 0;
+  int firstblockread = 0;
 
   bfile->bits_shifted = -1;
   bytes_read = read(fin, bfile->marker_buffer, sizeof(bfile->marker_buffer));
@@ -164,7 +165,9 @@ int find_next_bz2_block_marker(int fin, bz_info_t *bfile, int direction) {
     bfile->marker_buffer_ptr = bfile->marker_buffer + bytes_read - 7;
   /* must be after 4 byte file header, and we add a leftmost byte to the buffer
      of data read in case some bits have been shifted into it */
-  while (bfile->position <= bfile->file_size - 6 && bfile->position >= 0 && bfile->bits_shifted < 0) {
+  while (((bfile->position <= bfile->file_size - 6 && direction == FORWARD) ||
+	  (bfile->position >= 0 && direction == BACKWARD))
+	 && bfile->bits_shifted < 0) {
     bfile->bits_shifted = check_buffer_for_bz2_block_marker(bfile);
     if (bfile->bits_shifted < 0) {
       if (direction == FORWARD) {
@@ -192,26 +195,37 @@ int find_next_bz2_block_marker(int fin, bz_info_t *bfile, int direction) {
 	/* direction is backwards */
 	bfile->position--;
 	bfile->marker_buffer_ptr -= 1;
-	if (bfile->position < 0) {
+	if (bfile->position < 0 && firstblockread) {
 	  fprintf(stderr,"No block found in file\n");
 	  return(-1);
 	}
 	if (bfile->marker_buffer_ptr < bfile->marker_buffer) {
 	  /* keep those bytes around in case they have part of the marker */
-	  memmove(bfile->marker_buffer + sizeof(bfile->marker_buffer) - 7, bfile->marker_buffer, 7);
-	  bfile->position -= sizeof(bfile->marker_buffer) - 7;
-	  if (bfile->position < 0)
+	  if (bfile->position < sizeof(bfile->marker_buffer) - 7) {
+	    /* only a few bytes left. we'll just read a buffer full from the beginning of the file and search
+	       back, a little inefficient but clear */
+	    firstblockread++;
 	    bfile->position = 0;
-	  seekresult = lseek(fin, bfile->position, SEEK_SET);
-	  if (seekresult == (off_t)-1) {
-	    fprintf(stderr,"lseek of file to %"PRId64" failed (2)\n",bfile->position);
-	    return(-1);
+	    seekresult = lseek(fin, bfile->position, SEEK_SET);
+	    if (seekresult == (off_t)-1) {
+	      fprintf(stderr,"lseek of file to %"PRId64" failed (2)\n",bfile->position);
+	      return(-1);
+	    }
+	    bytes_read = read(fin, bfile->marker_buffer, sizeof(bfile->marker_buffer));
 	  }
-	  bytes_read = read(fin, bfile->marker_buffer, sizeof(bfile->marker_buffer) - 7);
-	  if (bytes_read != sizeof(bfile->marker_buffer) - 7) {
-	    /* not enough bytes left for us to read. move those 7 bytes to the end of the ones we read.
-	       should only happen near the beginning of the file. */
-	    memmove(bfile->marker_buffer + bytes_read, bfile->marker_buffer + sizeof(bfile->marker_buffer) - 7, 7);
+	  else {
+	    memmove(bfile->marker_buffer + sizeof(bfile->marker_buffer) - 7, bfile->marker_buffer, 7);
+	    bfile->position -= sizeof(bfile->marker_buffer) - 7;
+	    seekresult = lseek(fin, bfile->position, SEEK_SET);
+	    if (seekresult == (off_t)-1) {
+	      fprintf(stderr,"lseek of file to %"PRId64" failed (2)\n",bfile->position);
+	      return(-1);
+	    }
+	    bytes_read = read(fin, bfile->marker_buffer, sizeof(bfile->marker_buffer) - 7);
+	    if (bytes_read != sizeof(bfile->marker_buffer) - 7) {
+	      fprintf(stderr,"didn't read enough bytes to fill the buffer. only %ld. giving up\n", bytes_read);
+	      return(-1);
+	    }
 	  }
 	  bfile->marker_buffer_ptr = bfile->marker_buffer + bytes_read;
 	  bfile->position += bytes_read;
