@@ -426,13 +426,21 @@ int bz2_write_o(OutputHandler *oh, char *buffer, int bytecount) {
 }
 
 int bz2_close_o(OutputHandler *oh) {
+  off_t counter;
+
   BZ2_bzWriteClose64(&(oh->bzerror), oh->bzstream, 0,
 		     &(oh->bytes_in_low), &(oh->bytes_in_hi),
 		     &(oh->bytes_out_low), &(oh->bytes_out_hi));
-  oh->bytes_in_low_cumul += oh->bytes_in_low;
-  oh->bytes_in_hi_cumul += oh->bytes_in_hi;
-  oh->bytes_out_low_cumul += oh->bytes_out_low;
-  oh->bytes_out_hi_cumul += oh->bytes_out_hi;
+
+  counter = ((off_t)oh->bytes_out_low_cumul | (off_t)oh->bytes_out_hi_cumul << 32);
+  counter += ((off_t)oh->bytes_out_low | (off_t)oh->bytes_out_hi << 32);
+  oh->bytes_out_low_cumul = (unsigned int) (counter & 0xffffffff);
+  oh->bytes_out_hi_cumul = (unsigned int) (counter >> 32) & 0xffffffff;
+
+  counter = ((off_t)oh->bytes_in_low_cumul | (off_t)oh->bytes_in_hi_cumul << 32);
+  counter += ((off_t)oh->bytes_in_low | (off_t)oh->bytes_in_hi << 32);
+  oh->bytes_in_low_cumul = (unsigned int) (counter & 0xffffffff);
+  oh->bytes_in_hi_cumul = (unsigned int) (counter >> 32) & 0xffffffff;
 
   if (oh->fout != stdout)
     fclose(oh->fout);
